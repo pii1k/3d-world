@@ -22,9 +22,6 @@ FetchContent_Declare(
   glad
   GIT_REPOSITORY https://github.com/Dav1dde/glad.git
   GIT_TAG v2.0.8
-  PATCH_COMMAND ${CMAKE_COMMAND}
-    -DGLAD_SOURCE_DIR=<SOURCE_DIR>
-    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/scripts/update_glad_min_version.cmake
 )
 set(glad_SOURCE_SUBDIR cmake)
 FetchContent_MakeAvailable(glad)
