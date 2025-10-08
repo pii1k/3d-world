@@ -39,12 +39,11 @@ if(NOT TARGET glad)
   )
 endif()
 
-if(NOT TARGET glad::glad)
-  add_library(glad::glad ALIAS glad)
-endif()
-
 # Simulator exe
-file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+)
+
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
 
 target_include_directories(${PROJECT_NAME}
@@ -54,7 +53,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
   PRIVATE
-    glad::glad
+    glad
     glfw
 )
 
@@ -64,4 +63,9 @@ target_compile_options(${PROJECT_NAME}
     -Wextra
     -Wpedantic
     -O2
+)
+
+target_compile_definitions(${PROJECT_NAME}
+  PRIVATE
+    ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets"
 )
