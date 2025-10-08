@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(automotive-simulation LANGUAGES CXX C)
+project(autonomous-driving-simulation LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
