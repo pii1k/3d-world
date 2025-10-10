@@ -6,6 +6,9 @@
 #include <string>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/vec3.hpp>
 
 namespace
 {
@@ -101,6 +104,7 @@ int main()
     // position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
+
     // color attritbue
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
@@ -178,8 +182,15 @@ int main()
         // set the texture mix value in the shader
         ourShader.setFloat("mix_value", mix_value);
 
+        // create transformations
+        glm::mat4 transform = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+        transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
+        transform = glm::rotate(transform, static_cast<float>(glfwGetTime()), glm::vec3(0.0f, 0.0f, 1.0f));
+        // get matrix's uniform location and set matrix
+        unsigned int transformLoc = glGetUniformLocation(ourShader.getId(), "transform");
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+
         // render container
-        ourShader.use();
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 

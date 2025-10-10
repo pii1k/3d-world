@@ -39,6 +39,15 @@ if(NOT TARGET glad)
   )
 endif()
 
+# GLM
+FetchContent_Declare(
+  glm
+  GIT_REPOSITORY https://github.com/g-truc/glm
+  GIT_TAG 1.0.1
+)
+set(glm_SOURCE_SUBDIR cmake)
+FetchContent_MakeAvailable(glm)
+
 # Simulator exe
 file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
@@ -56,6 +65,7 @@ target_link_libraries(${PROJECT_NAME}
   PRIVATE
     glad
     glfw
+    glm
 )
 
 target_compile_options(${PROJECT_NAME}
