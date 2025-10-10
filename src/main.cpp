@@ -12,6 +12,9 @@ namespace
 constexpr unsigned int SCR_WIDTH = 800;
 constexpr unsigned int SCR_HEIGHT = 600;
 
+// stores how much we're seeing of either texture
+float mix_value = 0.2f;
+
 void framebuffer_size_callback(GLFWwindow * /* window */, int width, int height)
 {
     glViewport(0, 0, width, height);
@@ -21,6 +24,19 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    {
+        mix_value += 0.01f;
+        if (mix_value >= 1.0f)
+            mix_value = 1.0f;
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    {
+        mix_value -= 0.01f;
+        if (mix_value <= 0.0f)
+            mix_value = 0.0f;
+    }
 }
 } // namespace
 
@@ -93,10 +109,10 @@ int main()
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
-    // load and create a texture
-    unsigned int texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    // texture 1
+    unsigned int texture1;
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
     // set the texture wrapping parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -109,38 +125,41 @@ int main()
     int height = 0;
     int nrChannels = 0;
     const std::string container_path_str = std::string(ASSETS_DIR) + "/textures/container.jpeg";
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     unsigned char *loaded_pixels = stbi_load(container_path_str.c_str(), &width, &height, &nrChannels, 0);
-    if (loaded_pixels != nullptr)
+    if (!loaded_pixels)
     {
-        GLenum format = GL_RGB;
-        if (nrChannels == 1)
-        {
-            format = GL_RED;
-        }
-        else if (nrChannels == 3)
-        {
-            format = GL_RGB;
-        }
-        else if (nrChannels == 4)
-        {
-            format = GL_RGBA;
-        }
-        else
-        {
-            std::cout << "Unexpected channel count (" << nrChannels << ") for texture: " << container_path_str << std::endl;
-        }
+        std::cout << "Failed to load texture: " << container_path_str << std::endl;
+    }
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, loaded_pixels);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    stbi_image_free(loaded_pixels);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, loaded_pixels);
+    // texture 2
+    unsigned int texture2;
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    const std::string container_path_str2 = std::string(ASSETS_DIR) + "/textures/container2.jpeg";
+    loaded_pixels = stbi_load(container_path_str2.c_str(), &width, &height, &nrChannels, 0);
+    if (loaded_pixels)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, loaded_pixels);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
     {
-        std::cout << "Failed to load texture: " << container_path_str << std::endl;
+        std::cout << "Failed to load texture: " << container_path_str2 << std::endl;
     }
     stbi_image_free(loaded_pixels);
 
+    // tell OpenGL for each sampler to which texture unit it belongs to (only has to be once)
     ourShader.use();
     ourShader.setInt("texture1", 0);
+    ourShader.setInt("texture2", 1);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -150,9 +169,17 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // render the triangle
+        // bind textures on corresponding texture units
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+
+        // set the texture mix value in the shader
+        ourShader.setFloat("mix_value", mix_value);
+
+        // render container
         ourShader.use();
-        glBindTexture(GL_TEXTURE_2D, texture);
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -164,7 +191,8 @@ int main()
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
-    glDeleteTextures(1, &texture);
+    glDeleteTextures(1, &texture1);
+    glDeleteTextures(1, &texture2);
 
     glfwTerminate();
     return 0;
