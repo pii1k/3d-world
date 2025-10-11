@@ -164,6 +164,7 @@ int main()
     ourShader.use();
     ourShader.setInt("texture1", 0);
     ourShader.setInt("texture2", 1);
+    ourShader.setInt("activeTexture", 0);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -179,19 +180,28 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
-        // set the texture mix value in the shader
-        ourShader.setFloat("mix_value", mix_value);
-
         // create transformations
         glm::mat4 transform = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+
+        // first container
+        ourShader.setInt("activeTexture", 0);
         transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
         transform = glm::rotate(transform, static_cast<float>(glfwGetTime()), glm::vec3(0.0f, 0.0f, 1.0f));
         // get matrix's uniform location and set matrix
         unsigned int transformLoc = glGetUniformLocation(ourShader.getId(), "transform");
         glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
-
-        // render container
+        // with the uniform matrix set, draw the first container
         glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        // second transformation
+        ourShader.use();
+        transform = glm::mat4(1.0f); // reset
+        transform = glm::translate(transform, glm::vec3(-0.5f, 0.5f, 0.0f));
+        float scaleAmount = static_cast<float>(std::sin(glfwGetTime()));
+        transform = glm::scale(transform, glm::vec3(scaleAmount, scaleAmount, scaleAmount));
+        ourShader.setInt("activeTexture", 1);
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, &transform[0][0]);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         // glfw: swap buffers and poll IO events
