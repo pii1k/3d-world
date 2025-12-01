@@ -1,10 +1,7 @@
 #include "shader.hpp"
-#include "glad/gl.h"
-
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <string>
 
 namespace
 {
@@ -63,7 +60,6 @@ Shader::Shader(const std::string &vertex_path, const std::string &fragment_path)
     glLinkProgram(id_);
     checkCompileErrors(id_, "PROGRAM");
 
-    // delete the shadrers as they're linked into the program successfully and no longer necessary
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
 }

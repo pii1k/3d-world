@@ -6,49 +6,53 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
 
-# GLFW
-FetchContent_Declare(
-  glfw
-  GIT_REPOSITORY https://github.com/glfw/glfw.git
-  GIT_TAG 3.4
-)
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(glfw)
+find_package(SFML 2.5 COMPONENTS window system REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(glm REQUIRED)
+find_package(Python COMPONENTS Interpreter REQUIRED)
+find_package(glad CONFIG QUIET)
 
-# GLAD
-FetchContent_Declare(
-  glad
-  GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-  GIT_TAG v2.0.8
-)
-set(glad_SOURCE_SUBDIR cmake)
-FetchContent_MakeAvailable(glad)
-
-FetchContent_GetProperties(glad)
-set(GLAD_SOURCES_DIR ${glad_SOURCE_DIR} CACHE PATH "" FORCE)
-set(GLAD_CMAKE_DIR ${glad_SOURCE_DIR}/cmake CACHE PATH "" FORCE)
-include(${glad_SOURCE_DIR}/cmake/GladConfig.cmake)
-
-if(NOT TARGET glad)
-  glad_add_library(glad STATIC
-    REPRODUCIBLE
-    LANGUAGE C
-    API gl:core=4.1
+if(NOT glad_FOUND)
+  FetchContent_Declare(
+    glad
+    GIT_REPOSITORY https://github.com/Dav1dde/glad.git
+    GIT_TAG v2.0.8
   )
+  set(glad_SOURCE_SUBDIR cmake)
+  FetchContent_MakeAvailable(glad)
 endif()
 
-# GLM
-FetchContent_Declare(
-  glm
-  GIT_REPOSITORY https://github.com/g-truc/glm
-  GIT_TAG 1.0.1
-)
-set(glm_SOURCE_SUBDIR cmake)
-FetchContent_MakeAvailable(glm)
+if(NOT TARGET glad::glad)
+  if(NOT DEFINED glad_SOURCE_DIR)
+    message(
+      FATAL_ERROR
+        "glad dependency not found. Install a glad package that provides glad::glad or allow FetchContent to download it."
+    )
+  endif()
 
-# Simulator exe
+  set(GLAD_GENERATED_DIR "${CMAKE_BINARY_DIR}/glad")
+  file(MAKE_DIRECTORY "${GLAD_GENERATED_DIR}")
+
+  execute_process(
+    COMMAND
+      ${CMAKE_COMMAND} -E env "PYTHONPATH=${glad_SOURCE_DIR}"
+      ${Python_EXECUTABLE} -m glad --out-path "${GLAD_GENERATED_DIR}" --api gl:core=3.3 --reproducible c
+    WORKING_DIRECTORY "${glad_SOURCE_DIR}"
+    RESULT_VARIABLE GLAD_GEN_RESULT
+  )
+
+  if(NOT GLAD_GEN_RESULT EQUAL 0)
+    message(
+      FATAL_ERROR
+        "glad generation failed (python3 -m glad). Ensure python is available and ${glad_SOURCE_DIR} is accessible."
+    )
+  endif()
+
+  add_library(glad STATIC "${GLAD_GENERATED_DIR}/src/gl.c")
+  target_include_directories(glad PUBLIC "${GLAD_GENERATED_DIR}/include")
+  add_library(glad::glad ALIAS glad)
+endif()
+
 file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
@@ -58,14 +62,16 @@ add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
 target_include_directories(${PROJECT_NAME}
   PRIVATE
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/third_party
 )
 
 target_link_libraries(${PROJECT_NAME}
   PRIVATE
-    glad
-    glfw
-    glm
+    sfml-graphics
+    sfml-window
+    sfml-system
+    OpenGL::GL
+    glm::glm
+    glad::glad
 )
 
 target_compile_options(${PROJECT_NAME}
