@@ -10,9 +10,6 @@
 #include <iostream>
 #include <random>
 
-#include "glad/gl.h"
-#include "shader.hpp"
-
 namespace
 {
 constexpr unsigned int kWindowWidth = 800;
