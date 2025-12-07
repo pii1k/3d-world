@@ -1,0 +1,88 @@
+
+1) 아키텍처 방향 (Hexagonal + C++)
+
+아키텍처 스타일
+
+Hexagonal Architecture (Ports & Adapters)
+
+디렉터리/역할 기준:
+
+application/domain : 도메인 모델 + 도메인 서비스 (World, Simulation, Vehicle, DrivingPolicy 등)
+
+application/port/in : 유스케이스 인터페이스 (IRunSimulationUseCase 등)
+
+application/port/out: 외부 의존성 인터페이스 (IRenderPort, ISensorInputPort, IV2XCommPort 등)
+
+adapter/in : UI/입력, 윈도우, TUI 등 → 인바운드 어댑터
+
+adapter/out : 렌더링(OpenGL), 센서(Vision), V2X, persistence 등 → 아웃바운드 어댑터
+
+assembly : ApplicationBuilder (각 포트에 어댑터 주입)
+
+main.cc : 진입점 (ApplicationBuilder 호출 후 run)
+
+의존성 방향
+
+application/domain → application/port (인터페이스만 의존)
+
+adapter/* → application/port (포트 구현)
+
+assembly → application, adapter
+
+main → assembly
+
+역방향 의존성(도메인이 어댑터/인프라 include) 금지.
+
+관점
+
+도메인은 “자율주행 시뮬레이션 규칙” 중심.
+
+기술(OpenGL, Vision, V2X, 파일 I/O)은 어댑터로 캡슐화.
+
+도메인/애플리케이션은 OpenGL/GLFW/YOLO/V2X 스택의 구체 타입을 전혀 모르게 설계.
+
+2) C++ 성능/메모리 관점의 설계 원칙
+
+도메인 엔티티는 기본 non-copyable, 필요 시 move-only
+
+World, Simulation, Vehicle, Pedestrian, Rsu 등 “상태 많은 객체”는:
+
+Vehicle(const Vehicle&) = delete;
+
+Vehicle(Vehicle&&) noexcept = default;
+
+실수로 레이어 간 복사 발생하는 것을 컴파일 타임에 차단.
+
+레이어 경계(Port)에서는 다음 네 패턴만 사용
+
+작은 값(정수/enum/작은 DTO): by value
+
+큰 도메인 객체: const T&
+
+대용량 버퍼/프레임(센서, 이미지, 포인트 클라우드):
+
+포트에서 값 반환 (T get()), 구현체 내부에서 move → 호출측에서 move 수용
+
+반복 컬렉션: std::span / view (도메인 쪽에서 read-only view로 사용)
+
+레이어 내부(도메인/애플리케이션)는 참조 + view 중심
+
+move는 “레이어 간 hand-off” 용도로만 사용.
+
+도메인 내부 루프는 캐시 친화적인 구조 + 참조/ID/인덱스 기반.
+
+포트로 도메인 전체 그래프를 직접 들고 다니지 않기
+
+saveWorld(const World&) 같은 API로 전체를 막 옮기지 않는다.
+
+ID/경량 DTO 기반 (WorldId, EntityId, RouteRequest 등)으로 요청/응답.
+
+실제 직렬화/역직렬화는 어댑터(repository/mapper) 내부에서 처리.
+
+포트/유스케이스 인터페이스는 처음부터 move-friendly하게 설계
+
+ISensorInputPort::getCurrentFrame() → SensorFrame by value (move 기반)
+
+IV2XCommPort::receiveAll() → std::vector<V2XMessage> by value (move)
+
+IRenderPort::render(const World&) → 참조만.
