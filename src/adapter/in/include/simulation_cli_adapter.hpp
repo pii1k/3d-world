@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstddef>
-
 namespace ads::application
 {
 class SimulationRunner;
@@ -14,7 +12,7 @@ class SimulationCliAdapter
 public:
     explicit SimulationCliAdapter(application::SimulationRunner &simulation_runner);
 
-    void runDemo(std::size_t steps, float delta_seconds);
+    void runDemo();
 
 private:
     application::SimulationRunner *simulation_runner_;

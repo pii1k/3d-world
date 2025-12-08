@@ -29,15 +29,16 @@ public:
     RunSimulationService(RunSimulationService &&) noexcept = default;
     RunSimulationService &operator=(RunSimulationService &&) noexcept = default;
 
-    void runForSteps(std::size_t steps, float delta_seconds) override;
-    void tick(float delta_seconds) override;
+    void run() override;
     const domain::World &world() const override;
-    bool isRunning() const override;
 
 private:
+    void stepSimulation(float delta_seconds);
+
     domain::SimulationService simulation_;
     SensorInputPort *sensor_port_;
     V2XCommPort *v2x_port_;
     RenderPort *render_port_;
+    float fixed_delta_seconds_{1.0F / 60.0F};
 };
 } // namespace ads::application
