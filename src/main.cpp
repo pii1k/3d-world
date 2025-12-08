@@ -2,8 +2,8 @@
 
 int main()
 {
-    sim::assembly::ApplicationBuilder builder;
+    ads::assembly::ApplicationBuilder builder;
     auto app = builder.build();
-    app.controller->runDemo(30, 0.5F);
+    app.controller_ptr->runDemo(30, 0.5F);
     return 0;
 }

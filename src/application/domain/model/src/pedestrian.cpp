@@ -1,6 +1,6 @@
 #include "pedestrian.hpp"
 
-namespace sim::domain
+namespace ads::domain
 {
 Pedestrian::Pedestrian(const Vector2 &position, const Vector2 &velocity)
     : position_(position), velocity_(velocity)
@@ -16,4 +16,4 @@ void Pedestrian::advance(float delta_seconds)
     position_.x += velocity_.x * delta_seconds;
     position_.y += velocity_.y * delta_seconds;
 }
-} // namespace sim::domain
+} // namespace ads::domain

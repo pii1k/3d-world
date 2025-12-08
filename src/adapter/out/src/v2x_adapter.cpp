@@ -1,4 +1,4 @@
-#include "in_memory_v2x_adapter.hpp"
+#include "v2x_adapter.hpp"
 
 #include <cmath>
 #include <optional>
@@ -8,11 +8,11 @@
 #include "vector2.hpp"
 #include "world.hpp"
 
-namespace sim::adapter
+namespace ads::adapter
 {
-InMemoryV2XAdapter::InMemoryV2XAdapter(float caution_distance_m) : caution_distance_m_(caution_distance_m) {}
+V2XAdapter::V2XAdapter(float caution_distance_m) : caution_distance_m_(caution_distance_m) {}
 
-std::vector<application::V2XMessage> InMemoryV2XAdapter::receiveAll(const domain::World &world)
+std::vector<application::V2XMessage> V2XAdapter::receiveAll(const domain::World &world)
 {
     std::vector<application::V2XMessage> messages;
 
@@ -50,4 +50,4 @@ std::vector<application::V2XMessage> InMemoryV2XAdapter::receiveAll(const domain
 
     return messages;
 }
-} // namespace sim::adapter
+} // namespace ads::adapter

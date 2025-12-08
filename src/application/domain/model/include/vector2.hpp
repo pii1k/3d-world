@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace sim::domain
+namespace ads::domain
 {
 struct Vector2
 {
@@ -54,4 +54,4 @@ inline Vector2 normalize(const Vector2 &vec)
     }
     return {vec.x / len, vec.y / len};
 }
-} // namespace sim::domain
+} // namespace ads::domain

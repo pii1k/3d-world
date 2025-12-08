@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace sim::domain
+namespace ads::domain
 {
 SimulationService::SimulationService(World world) : world_(std::move(world)) {}
 
@@ -53,4 +53,4 @@ void SimulationService::applyAdvisories(const SimulationTickInput &input)
     }
     world_.setEgoTargetSpeed(current_target);
 }
-} // namespace sim::domain
+} // namespace ads::domain

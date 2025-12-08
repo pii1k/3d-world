@@ -1,12 +1,12 @@
-add_library(sim_port_out INTERFACE)
-add_library(sim::port::out ALIAS sim_port_out)
+add_library(port_out INTERFACE)
+add_library(ads::port::out ALIAS port_out)
 
-target_include_directories(sim_port_out
+target_include_directories(port_out
 INTERFACE
     include
 )
 
-target_link_libraries(sim_port_out
+target_link_libraries(port_out
 INTERFACE
-    sim::domain::model
+    ads::domain::model
 )

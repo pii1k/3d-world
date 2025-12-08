@@ -1,16 +1,16 @@
-add_library(sim_usecase STATIC
+add_library(usecase STATIC
     src/run_simulation_service.cpp
 )
-add_library(sim::usecase ALIAS sim_usecase)
+add_library(ads::usecase ALIAS usecase)
 
-target_include_directories(sim_usecase
+target_include_directories(usecase
 PUBLIC
     include
 )
 
-target_link_libraries(sim_usecase
+target_link_libraries(usecase
 PUBLIC
-    sim::domain::service
-    sim::port::in
-    sim::port::out
+    ads::domain::service
+    ads::port::in
+    ads::port::out
 )

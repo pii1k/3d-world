@@ -10,4 +10,4 @@ add_subdirectory(src/adapter)
 add_subdirectory(src/assembly)
 
 add_executable(${PROJECT_NAME} src/main.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE sim::assembly)
+target_link_libraries(${PROJECT_NAME} PRIVATE ads::assembly)

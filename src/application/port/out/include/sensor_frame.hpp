@@ -4,11 +4,11 @@
 
 #include "vector2.hpp"
 
-namespace sim::application
+namespace ads::application
 {
 struct SensedObject
 {
-    sim::domain::Vector2 position;
+    ads::domain::Vector2 position;
     float distance_m{0.0F};
 };
 
@@ -16,4 +16,4 @@ struct SensorFrame
 {
     std::vector<SensedObject> objects;
 };
-} // namespace sim::application
+} // namespace ads::application

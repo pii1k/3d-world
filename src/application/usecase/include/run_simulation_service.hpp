@@ -1,23 +1,22 @@
 #pragma once
 
 #include <cstddef>
-#include <memory>
 
-#include "run_simulation_use_case.hpp"
+#include "simulation_runner.hpp"
 #include "simulation_service.hpp"
 
-namespace sim::domain
+namespace ads::domain
 {
 class SimulationService;
 }
 
-namespace sim::application
+namespace ads::application
 {
 class SensorInputPort;
 class V2XCommPort;
 class RenderPort;
 
-class RunSimulationService : public RunSimulationUseCase
+class RunSimulationService : public SimulationRunner
 {
 public:
     RunSimulationService(domain::SimulationService simulation,
@@ -33,6 +32,7 @@ public:
     void runForSteps(std::size_t steps, float delta_seconds) override;
     void tick(float delta_seconds) override;
     const domain::World &world() const override;
+    bool isRunning() const override;
 
 private:
     domain::SimulationService simulation_;
@@ -40,4 +40,4 @@ private:
     V2XCommPort *v2x_port_;
     RenderPort *render_port_;
 };
-} // namespace sim::application
+} // namespace ads::application

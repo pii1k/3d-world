@@ -2,7 +2,7 @@
 
 #include "vector2.hpp"
 
-namespace sim::domain
+namespace ads::domain
 {
 class Vehicle
 {
@@ -31,4 +31,4 @@ private:
     float max_decel_mps2_{5.0F};
     float max_speed_mps_{20.0F};
 };
-} // namespace sim::domain
+} // namespace ads::domain

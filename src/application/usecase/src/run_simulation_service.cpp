@@ -8,7 +8,7 @@
 #include "simulation_types.hpp"
 #include "v2x_comm_port.hpp"
 
-namespace sim::application
+namespace ads::application
 {
 RunSimulationService::RunSimulationService(domain::SimulationService simulation,
                                            SensorInputPort &sensor_port,
@@ -25,6 +25,10 @@ void RunSimulationService::runForSteps(std::size_t steps, float delta_seconds)
 {
     for (std::size_t i = 0; i < steps; ++i)
     {
+        if (!isRunning())
+        {
+            break;
+        }
         tick(delta_seconds);
     }
 }
@@ -56,4 +60,9 @@ const domain::World &RunSimulationService::world() const
 {
     return simulation_.world();
 }
-} // namespace sim::application
+
+bool RunSimulationService::isRunning() const
+{
+    return render_port_->isActive();
+}
+} // namespace ads::application

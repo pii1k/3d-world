@@ -1,9 +1,9 @@
-add_library(sim_common STATIC
+add_library(common STATIC
     src/scope_guard.cpp
 )
-add_library(sim::common ALIAS sim_common)
+add_library(ads::common ALIAS common)
 
-target_include_directories(sim_common
+target_include_directories(common
 PUBLIC
     include
 PRIVATE

@@ -6,7 +6,7 @@
 #include "vector2.hpp"
 #include "world.hpp"
 
-namespace sim::adapter
+namespace ads::adapter
 {
 ScriptedSensorAdapter::ScriptedSensorAdapter(float detection_range_m, float field_of_view_deg)
     : detection_range_m_(detection_range_m)
@@ -41,4 +41,4 @@ application::SensorFrame ScriptedSensorAdapter::getSensorFrame(const domain::Wor
 
     return frame;
 }
-} // namespace sim::adapter
+} // namespace ads::adapter

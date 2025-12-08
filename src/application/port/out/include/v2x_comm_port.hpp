@@ -4,17 +4,17 @@
 
 #include "v2x_message.hpp"
 
-namespace sim::domain
+namespace ads::domain
 {
 class World;
 }
 
-namespace sim::application
+namespace ads::application
 {
 class V2XCommPort
 {
 public:
     virtual ~V2XCommPort() = default;
-    virtual std::vector<V2XMessage> receiveAll(const sim::domain::World &world) = 0;
+    virtual std::vector<V2XMessage> receiveAll(const ads::domain::World &world) = 0;
 };
-} // namespace sim::application
+} // namespace ads::application

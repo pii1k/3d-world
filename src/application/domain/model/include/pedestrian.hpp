@@ -2,7 +2,7 @@
 
 #include "vector2.hpp"
 
-namespace sim::domain
+namespace ads::domain
 {
 class Pedestrian
 {
@@ -23,4 +23,4 @@ private:
     Vector2 position_;
     Vector2 velocity_;
 };
-} // namespace sim::domain
+} // namespace ads::domain

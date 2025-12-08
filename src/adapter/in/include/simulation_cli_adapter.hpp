@@ -2,21 +2,21 @@
 
 #include <cstddef>
 
-namespace sim::application
+namespace ads::application
 {
-class RunSimulationUseCase;
+class SimulationRunner;
 }
 
-namespace sim::adapter
+namespace ads::adapter
 {
 class SimulationCliAdapter
 {
 public:
-    explicit SimulationCliAdapter(application::RunSimulationUseCase &use_case);
+    explicit SimulationCliAdapter(application::SimulationRunner &simulation_runner);
 
     void runDemo(std::size_t steps, float delta_seconds);
 
 private:
-    application::RunSimulationUseCase *use_case_;
+    application::SimulationRunner *simulation_runner_;
 };
-} // namespace sim::adapter
+} // namespace ads::adapter

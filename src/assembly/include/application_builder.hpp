@@ -2,21 +2,21 @@
 
 #include <memory>
 
-#include "console_render_adapter.hpp"
-#include "in_memory_v2x_adapter.hpp"
-#include "run_simulation_use_case.hpp"
+#include "gl_render_adapter.hpp"
 #include "scripted_sensor_adapter.hpp"
 #include "simulation_cli_adapter.hpp"
+#include "simulation_runner.hpp"
+#include "v2x_adapter.hpp"
 
-namespace sim::assembly
+namespace ads::assembly
 {
 struct SimulationApp
 {
-    std::unique_ptr<adapter::ConsoleRenderAdapter> render_adapter;
-    std::unique_ptr<adapter::ScriptedSensorAdapter> sensor_adapter;
-    std::unique_ptr<adapter::InMemoryV2XAdapter> v2x_adapter;
-    std::unique_ptr<application::RunSimulationUseCase> use_case;
-    std::unique_ptr<adapter::SimulationCliAdapter> controller;
+    std::unique_ptr<adapter::GlRenderAdapter> render_adapter_ptr;
+    std::unique_ptr<adapter::ScriptedSensorAdapter> sensor_adapter_ptr;
+    std::unique_ptr<adapter::V2XAdapter> v2x_adapter_ptr;
+    std::unique_ptr<application::SimulationRunner> simulation_runner_ptr;
+    std::unique_ptr<adapter::SimulationCliAdapter> controller_ptr;
 };
 
 class ApplicationBuilder
@@ -24,4 +24,4 @@ class ApplicationBuilder
 public:
     SimulationApp build();
 };
-} // namespace sim::assembly
+} // namespace ads::assembly

@@ -5,7 +5,7 @@
 #include "simulation_types.hpp"
 #include "world.hpp"
 
-namespace sim::domain
+namespace ads::domain
 {
 class SimulationService
 {
@@ -30,4 +30,4 @@ private:
     float cruise_speed_mps_{12.0F};
     float cautious_speed_mps_{5.0F};
 };
-} // namespace sim::domain
+} // namespace ads::domain

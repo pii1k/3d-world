@@ -2,17 +2,17 @@
 
 #include "sensor_frame.hpp"
 
-namespace sim::domain
+namespace ads::domain
 {
 class World;
 }
 
-namespace sim::application
+namespace ads::application
 {
 class SensorInputPort
 {
 public:
     virtual ~SensorInputPort() = default;
-    virtual SensorFrame getSensorFrame(const sim::domain::World &world) = 0;
+    virtual SensorFrame getSensorFrame(const ads::domain::World &world) = 0;
 };
-} // namespace sim::application
+} // namespace ads::application

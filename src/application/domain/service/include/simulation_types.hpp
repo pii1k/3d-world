@@ -5,7 +5,7 @@
 
 #include "vector2.hpp"
 
-namespace sim::domain
+namespace ads::domain
 {
 struct PerceivedObstacle
 {
@@ -25,4 +25,4 @@ struct SimulationTickInput
     std::vector<PerceivedObstacle> obstacles;
     std::vector<SpeedAdvisory> advisories;
 };
-} // namespace sim::domain
+} // namespace ads::domain

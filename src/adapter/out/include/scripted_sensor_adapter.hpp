@@ -2,7 +2,7 @@
 
 #include "sensor_input_port.hpp"
 
-namespace sim::adapter
+namespace ads::adapter
 {
 class ScriptedSensorAdapter : public application::SensorInputPort
 {
@@ -15,4 +15,4 @@ private:
     float detection_range_m_{20.0F};
     float field_of_view_rad_{1.57F};
 };
-} // namespace sim::adapter
+} // namespace ads::adapter

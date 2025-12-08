@@ -1,15 +1,15 @@
-add_library(sim_adapter_in STATIC
+add_library(adapter_in STATIC
     src/simulation_cli_adapter.cpp
 )
-add_library(sim::adapter::in ALIAS sim_adapter_in)
+add_library(ads::adapter::in ALIAS adapter_in)
 
-target_include_directories(sim_adapter_in
+target_include_directories(adapter_in
 PUBLIC
     include
 )
 
-target_link_libraries(sim_adapter_in
+target_link_libraries(adapter_in
 PUBLIC
-    sim::usecase
-    sim::port::in
+    ads::usecase
+    ads::port::in
 )

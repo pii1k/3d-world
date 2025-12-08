@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace sim::domain
+namespace ads::domain
 {
 Vehicle::Vehicle(const Vector2 &position, float heading_rad, float speed_mps, float max_speed_mps)
     : position_(position),
@@ -44,4 +44,4 @@ void Vehicle::advance(float delta_seconds)
     position_.x += dx;
     position_.y += dy;
 }
-} // namespace sim::domain
+} // namespace ads::domain

@@ -6,7 +6,7 @@
 #include "pedestrian.hpp"
 #include "vehicle.hpp"
 
-namespace sim::domain
+namespace ads::domain
 {
 class World
 {
@@ -24,6 +24,7 @@ public:
     Vehicle &egoVehicle() noexcept { return ego_vehicle_; }
     const Vehicle &egoVehicle() const noexcept { return ego_vehicle_; }
     std::span<const Pedestrian> pedestrians() const noexcept { return pedestrians_; }
+    float roadHalfWidth() const noexcept { return road_half_width_; }
 
 private:
     void clampPedestrians();
@@ -32,4 +33,4 @@ private:
     std::vector<Pedestrian> pedestrians_;
     float road_half_width_{5.0F};
 };
-} // namespace sim::domain
+} // namespace ads::domain

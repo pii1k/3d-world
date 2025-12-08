@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace sim::domain
+namespace ads::domain
 {
 World::World(Vehicle ego_vehicle, std::vector<Pedestrian> pedestrians, float road_half_width)
     : ego_vehicle_(std::move(ego_vehicle)),
@@ -35,4 +35,4 @@ void World::clampPedestrians()
             ped.velocity());
     }
 }
-} // namespace sim::domain
+} // namespace ads::domain

@@ -1,18 +1,18 @@
-add_library(sim_assembly STATIC
+add_library(assembly STATIC
     src/application_builder.cpp
 )
-add_library(sim::assembly ALIAS sim_assembly)
+add_library(ads::assembly ALIAS assembly)
 
-target_include_directories(sim_assembly
+target_include_directories(assembly
 PUBLIC
     include
 )
 
-target_link_libraries(sim_assembly
+target_link_libraries(assembly
 PUBLIC
-    sim::adapter::in
-    sim::adapter::out
-    sim::usecase
-    sim::domain::service
-    sim::common
+    ads::adapter::in
+    ads::adapter::out
+    ads::usecase
+    ads::domain::service
+    ads::common
 )
