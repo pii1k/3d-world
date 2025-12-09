@@ -12,16 +12,12 @@ class SimulationService;
 
 namespace ads::application
 {
-class SensorInputPort;
-class V2XCommPort;
 class RenderPort;
 
 class RunSimulationService : public SimulationRunner
 {
 public:
     RunSimulationService(domain::SimulationService simulation,
-                         SensorInputPort &sensor_port,
-                         V2XCommPort &v2x_port,
                          RenderPort &render_port);
 
     RunSimulationService(const RunSimulationService &) = delete;
@@ -36,8 +32,6 @@ private:
     void stepSimulation(float delta_seconds);
 
     domain::SimulationService simulation_;
-    SensorInputPort *sensor_port_;
-    V2XCommPort *v2x_port_;
     RenderPort *render_port_;
     float fixed_delta_seconds_{1.0F / 60.0F};
 };

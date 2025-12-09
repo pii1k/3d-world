@@ -5,3 +5,8 @@ target_include_directories(port_in
 INTERFACE
     include
 )
+
+target_link_libraries(port_in
+INTERFACE
+    ads::domain::model
+)

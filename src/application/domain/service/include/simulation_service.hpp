@@ -1,8 +1,5 @@
 #pragma once
 
-#include <vector>
-
-#include "simulation_types.hpp"
 #include "world.hpp"
 
 namespace ads::domain
@@ -17,17 +14,13 @@ public:
     SimulationService(SimulationService &&) noexcept = default;
     SimulationService &operator=(SimulationService &&) noexcept = default;
 
-    void step(const SimulationTickInput &input);
+    void step(float delta_seconds);
 
     const World &world() const noexcept { return world_; }
     World &world() noexcept { return world_; }
 
 private:
-    void adjustSpeedFromObstacles(const SimulationTickInput &input);
-    void applyAdvisories(const SimulationTickInput &input);
-
     World world_;
     float cruise_speed_mps_{12.0F};
-    float cautious_speed_mps_{5.0F};
 };
 } // namespace ads::domain

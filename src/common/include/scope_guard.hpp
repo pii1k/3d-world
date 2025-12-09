@@ -2,9 +2,9 @@
 
 #include <utility>
 
-namespace ADS
+namespace ads
 {
-namespace Common
+namespace common
 {
 class ScopeGuardBase
 {
@@ -51,5 +51,5 @@ ScopeGuard<Func> MakeGuard(Func &&func)
 {
     return ScopeGuard<Func>(std::forward<Func>(func));
 }
-} // namespace Common
-} // namespace ADS
+} // namespace common
+} // namespace ads
