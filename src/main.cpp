@@ -4,6 +4,6 @@ int main()
 {
     ads::assembly::ApplicationBuilder builder;
     auto app = builder.build();
-    app.controller_ptr->runDemo();
+    app.simulation_runner_ptr->run();
     return 0;
 }

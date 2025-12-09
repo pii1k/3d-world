@@ -7,7 +7,6 @@
 #include "pedestrian.hpp"
 #include "run_simulation_service.hpp"
 #include "scripted_sensor_adapter.hpp"
-#include "simulation_cli_adapter.hpp"
 #include "simulation_service.hpp"
 #include "v2x_adapter.hpp"
 #include "vehicle.hpp"
@@ -29,18 +28,12 @@ SimulationApp ApplicationBuilder::build()
     auto render_adapter_ptr = std::make_unique<adapter::GlRenderAdapter>(1280, 720);
     auto sensor_adapter_ptr = std::make_unique<adapter::ScriptedSensorAdapter>(25.0F, 100.0F);
     auto v2x_adapter_ptr = std::make_unique<adapter::V2XAdapter>(18.0F);
-    auto simulation_runner_ptr = std::make_unique<application::RunSimulationService>(std::move(simulation),
-                                                                                     *sensor_adapter_ptr,
-                                                                                     *v2x_adapter_ptr,
-                                                                                     *render_adapter_ptr);
-    auto controller_ptr = std::make_unique<adapter::SimulationCliAdapter>(*simulation_runner_ptr);
+    auto simulation_runner_ptr = std::make_unique<application::RunSimulationService>(std::move(simulation), *sensor_adapter_ptr, *v2x_adapter_ptr, *render_adapter_ptr);
 
-    SimulationApp app{
-        std::move(render_adapter_ptr),
-        std::move(sensor_adapter_ptr),
-        std::move(v2x_adapter_ptr),
-        std::move(simulation_runner_ptr),
-        std::move(controller_ptr)};
+    SimulationApp app{std::move(render_adapter_ptr),
+                      std::move(sensor_adapter_ptr),
+                      std::move(v2x_adapter_ptr),
+                      std::move(simulation_runner_ptr)};
 
     return app;
 }
