@@ -1,8 +1,9 @@
-#include "gl_render_adapter.hpp"
+#include "renderer_opengl.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <SFML/Window/Keyboard.hpp>
 
 #include "pedestrian.hpp"
 #include "vehicle.hpp"
@@ -56,114 +57,36 @@ ads::adapter::Vec3 normalize(const ads::adapter::Vec3 &vec)
 
 namespace ads::adapter
 {
-GlRenderAdapter::GlRenderAdapter(unsigned int width, unsigned int height)
-    : width_(width), height_(height)
+GlRenderAdapter::GlRenderAdapter(ControllerOpengl &controller)
+    : controller_(&controller)
 {
 }
 
-void GlRenderAdapter::ensureWindow()
+bool GlRenderAdapter::isActive() const
 {
-    if (window_)
+    return controller_ && controller_->isActive();
+}
+
+void GlRenderAdapter::ensureGlState()
+{
+    if (initialized_)
     {
         return;
     }
-
-    sf::ContextSettings settings;
-    settings.depthBits = 24;
-    settings.stencilBits = 8;
-    settings.majorVersion = 3;
-    settings.minorVersion = 3;
-    settings.antialiasingLevel = 4;
-
-    window_ = std::make_unique<sf::RenderWindow>(
-        sf::VideoMode(width_, height_),
-        "Autonomous Driving Simulator",
-        sf::Style::Default,
-        settings);
-    window_->setVerticalSyncEnabled(true);
-    window_->setActive(true);
-    window_->setMouseCursorVisible(true);
-    last_mouse_position_ = sf::Mouse::getPosition(*window_);
 
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.05F, 0.05F, 0.08F, 1.0F);
     setupProjection();
     frame_clock_.restart();
-}
-
-void GlRenderAdapter::processEvents()
-{
-    sf::Event event{};
-    while (window_->pollEvent(event))
-    {
-        switch (event.type)
-        {
-        case sf::Event::Closed:
-            window_active_ = false;
-            window_->close();
-            break;
-        case sf::Event::Resized:
-            width_ = event.size.width;
-            height_ = event.size.height;
-            glViewport(0, 0, static_cast<GLsizei>(width_), static_cast<GLsizei>(height_));
-            setupProjection();
-            break;
-        case sf::Event::MouseWheelScrolled:
-            camera_distance_ -= event.mouseWheelScroll.delta * 2.5F;
-            camera_distance_ = std::clamp(camera_distance_, 5.0F, 150.0F);
-            break;
-        case sf::Event::MouseButtonPressed:
-            last_mouse_position_ = {event.mouseButton.x, event.mouseButton.y};
-            if (event.mouseButton.button == sf::Mouse::Right)
-            {
-                orbiting_ = true;
-            }
-            if (event.mouseButton.button == sf::Mouse::Middle)
-            {
-                panning_ = true;
-            }
-            break;
-        case sf::Event::MouseButtonReleased:
-            if (event.mouseButton.button == sf::Mouse::Right)
-            {
-                orbiting_ = false;
-            }
-            if (event.mouseButton.button == sf::Mouse::Middle)
-            {
-                panning_ = false;
-            }
-            break;
-        case sf::Event::MouseMoved:
-        {
-            const sf::Vector2i current(event.mouseMove.x, event.mouseMove.y);
-            const sf::Vector2i delta = current - last_mouse_position_;
-            last_mouse_position_ = current;
-            if (orbiting_)
-            {
-                camera_yaw_deg_ -= static_cast<float>(delta.x) * 0.25F;
-                camera_pitch_deg_ -= static_cast<float>(delta.y) * 0.25F;
-                camera_pitch_deg_ = std::clamp(camera_pitch_deg_, -5.0F, 85.0F);
-            }
-            else if (panning_)
-            {
-                const float pan_scale = camera_distance_ * 0.005F;
-                camera_target_offset_.x -= static_cast<float>(delta.x) * pan_scale;
-                camera_target_offset_.z += static_cast<float>(delta.y) * pan_scale;
-            }
-            break;
-        }
-        default:
-            break;
-        }
-    }
+    initialized_ = true;
 }
 
 void GlRenderAdapter::setupProjection()
 {
-    glViewport(0, 0, static_cast<GLsizei>(width_), static_cast<GLsizei>(height_));
+    glViewport(0, 0, static_cast<GLsizei>(controller_->width()), static_cast<GLsizei>(controller_->height()));
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    const float aspect = static_cast<float>(width_) / static_cast<float>(std::max(1u, height_));
+    const float aspect = static_cast<float>(controller_->width()) / static_cast<float>(std::max(1u, controller_->height()));
     const float fov = 45.0F * kDegToRad;
     const float near_plane = 0.1F;
     const float far_plane = 500.0F;
@@ -182,7 +105,7 @@ void GlRenderAdapter::updateCameraTarget(const domain::World &world, float delta
         delta_seconds = 0.016F;
     }
 
-    const float yaw_rad = camera_yaw_deg_ * kDegToRad;
+    const float yaw_rad = controller_->cameraYawDeg() * kDegToRad;
     Vec3 forward{std::cos(yaw_rad), 0.0F, std::sin(yaw_rad)};
     Vec3 right{-forward.z, 0.0F, forward.x};
     Vec3 movement{};
@@ -205,18 +128,19 @@ void GlRenderAdapter::updateCameraTarget(const domain::World &world, float delta
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
     {
-        camera_target_offset_.y -= keyboard_pan_speed_ * delta_seconds * 0.5F;
+        controller_->nudgeCameraTargetOffset(0.0F, -keyboard_pan_speed_ * delta_seconds * 0.5F, 0.0F);
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
     {
-        camera_target_offset_.y += keyboard_pan_speed_ * delta_seconds * 0.5F;
+        controller_->nudgeCameraTargetOffset(0.0F, keyboard_pan_speed_ * delta_seconds * 0.5F, 0.0F);
     }
 
     if (movement.x != 0.0F || movement.y != 0.0F || movement.z != 0.0F)
     {
         movement = normalize(movement);
-        camera_target_offset_.x += movement.x * keyboard_pan_speed_ * delta_seconds;
-        camera_target_offset_.z += movement.z * keyboard_pan_speed_ * delta_seconds;
+        controller_->nudgeCameraTargetOffset(movement.x * keyboard_pan_speed_ * delta_seconds,
+                                             0.0F,
+                                             movement.z * keyboard_pan_speed_ * delta_seconds);
     }
 
     (void)world;
@@ -227,19 +151,19 @@ Vec3 GlRenderAdapter::computeFocusPoint(const domain::World &world) const
     const auto &ego = world.egoVehicle();
     const auto pos = ego.position();
     Vec3 focus{pos.x, 1.5F, pos.y};
-    return focus + camera_target_offset_;
+    return focus + controller_->cameraTargetOffset();
 }
 
 Vec3 GlRenderAdapter::computeCameraPosition(const Vec3 &focus) const
 {
-    const float yaw_rad = camera_yaw_deg_ * kDegToRad;
-    const float pitch_rad = camera_pitch_deg_ * kDegToRad;
+    const float yaw_rad = controller_->cameraYawDeg() * kDegToRad;
+    const float pitch_rad = controller_->cameraPitchDeg() * kDegToRad;
     const float cos_pitch = std::cos(pitch_rad);
     Vec3 offset{
         cos_pitch * std::cos(yaw_rad),
         std::sin(pitch_rad),
         cos_pitch * std::sin(yaw_rad)};
-    offset = offset * camera_distance_;
+    offset = offset * controller_->cameraDistance();
     return focus + offset;
 }
 
@@ -286,28 +210,24 @@ void GlRenderAdapter::drawScene(const domain::World &world)
 
 void GlRenderAdapter::render(const domain::World &world)
 {
-    ensureWindow();
-    if (!window_active_)
+    controller_->pollEvents();
+    if (!isActive())
     {
         return;
     }
+
+    ensureGlState();
 
     const float delta_seconds = frame_clock_.restart().asSeconds();
-    processEvents();
-    if (!window_active_)
-    {
-        return;
-    }
-
     updateCameraTarget(world, delta_seconds);
     const Vec3 focus = computeFocusPoint(world);
     const Vec3 camera_position = computeCameraPosition(focus);
 
-    window_->setActive(true);
+    controller_->window().setActive(true);
     setupProjection();
     applyViewMatrix(camera_position, focus);
     drawScene(world);
-    window_->display();
+    controller_->window().display();
 }
 
 void GlRenderAdapter::drawGround() const

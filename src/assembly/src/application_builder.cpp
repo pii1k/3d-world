@@ -3,7 +3,7 @@
 #include <utility>
 #include <vector>
 
-#include "gl_render_adapter.hpp"
+#include "renderer_opengl.hpp"
 #include "pedestrian.hpp"
 #include "run_simulation_service.hpp"
 #include "simulation_service.hpp"
@@ -23,10 +23,12 @@ SimulationApp ApplicationBuilder::build()
     domain::World world(std::move(ego), std::move(pedestrians), 4.0F);
     domain::SimulationService simulation(std::move(world));
 
-    auto render_adapter_ptr = std::make_unique<adapter::GlRenderAdapter>(1280, 720);
+    auto controller_ptr = std::make_unique<adapter::ControllerOpengl>(1280, 720);
+    auto render_adapter_ptr = std::make_unique<adapter::GlRenderAdapter>(*controller_ptr);
     auto simulation_runner_ptr = std::make_unique<application::RunSimulationService>(std::move(simulation), *render_adapter_ptr);
 
-    SimulationApp app{std::move(render_adapter_ptr),
+    SimulationApp app{std::move(controller_ptr),
+                      std::move(render_adapter_ptr),
                       std::move(simulation_runner_ptr)};
 
     return app;

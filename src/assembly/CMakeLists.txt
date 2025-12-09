@@ -10,6 +10,7 @@ PUBLIC
 
 target_link_libraries(assembly
 PUBLIC
+    ads::adapter::in
     ads::adapter::out
     ads::usecase
     ads::domain::service
