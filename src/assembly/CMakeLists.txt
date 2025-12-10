@@ -1,4 +1,4 @@
-add_library(assembly STATIC
+add_library(assembly
     src/application_builder.cpp
 )
 add_library(ads::assembly ALIAS assembly)
@@ -10,9 +10,5 @@ PUBLIC
 
 target_link_libraries(assembly
 PUBLIC
-    ads::adapter::in
-    ads::adapter::out
-    ads::usecase
-    ads::domain::service
-    ads::common
+    ads::port::out
 )
