@@ -1,9 +1,9 @@
 // Registry를 순회하며 렌더링이 필요한 엔티티를 찾아, 그리기 명령(DrawCommand)을 생성하는 역할만 함
 #pragma once
 
-#include "../graphics/render_data.hpp"
 #include "component.hpp"
 #include "registry.hpp"
+#include "render_data.hpp"
 
 class RenderSystem
 {

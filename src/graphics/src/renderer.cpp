@@ -1,6 +1,6 @@
 #include "renderer.hpp"
-#include "graphics/render_data.hpp"
-#include "graphics/shaders/shader.hpp"
+#include "render_data.hpp"
+#include "shader.hpp"
 
 #include <GL/glext.h>
 #include <glm/ext/matrix_transform.hpp>

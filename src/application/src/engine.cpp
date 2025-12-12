@@ -1,11 +1,9 @@
-#include "application/engine.hpp"
-
+#include "engine.hpp"
+#include "component.hpp"
+#include "registry.hpp"
+#include "render_system.hpp"
+#include "renderer.hpp"
 #include <iostream>
-
-#include "../ecs/component.hpp"
-#include "../ecs/registry.hpp"
-#include "../ecs/render_system.hpp"
-#include "../graphics/renderer.hpp"
 
 void Engine::run()
 {
