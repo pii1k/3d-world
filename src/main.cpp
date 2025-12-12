@@ -1,7 +1,8 @@
-#include "application_builder.hpp"
+#include "application/engine.hpp"
 
 int main()
 {
-    ads::assembly::ApplicationBuilder builder;
-    builder.build();
+    Engine engine;
+    engine.run();
+    return 0;
 }
