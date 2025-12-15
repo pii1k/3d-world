@@ -12,9 +12,8 @@ Camera::Camera(glm::vec3 position)
       yaw_(-90.0f), // yaw는 0일때 +x 방향을 보므로, -z 방향을 보기위해 -90으로 시작
       pitch_(0.0f),
       movement_speed_(2.5f),
-      mouse_sensitivity_(0.1f),
-      fov_(45.0f),
-      aspect_ratio_(1280.0f / 720.0f) // 이 값은 나중에 창 크기 바꾸기 할때 수정
+      mouse_sensitivity_(0.03f),
+      fov_(45.0f)
 {
     this->updateCameraVectors();
 }
@@ -82,9 +81,9 @@ void Camera::processMouseScroll(float offset_y)
 void Camera::updateCameraVectors()
 {
     glm::vec3 new_front;
-    new_front.x = cos(glm::radians(yaw_) * cos(glm::radians(pitch_)));
+    new_front.x = cos(glm::radians(yaw_)) * cos(glm::radians(pitch_));
     new_front.y = sin(glm::radians(pitch_));
-    new_front.z = cos(glm::radians(yaw_) * cos(glm::radians(pitch_)));
+    new_front.z = sin(glm::radians(yaw_)) * cos(glm::radians(pitch_));
     front_ = glm::normalize(new_front);
 
     // right 벡터와 up 벡터도 다시 계산

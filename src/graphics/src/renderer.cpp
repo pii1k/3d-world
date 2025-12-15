@@ -3,6 +3,8 @@
 #include "shader.hpp"
 
 #include <GL/glext.h>
+#include <algorithm>
+#include <array>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -10,9 +12,9 @@
 
 namespace
 {
-constexpr float kClearColorR = 0.1F;                                                    // 배경색 R
-constexpr float kClearColorG = 0.1F;                                                    // 배경색 G
-constexpr float kClearColorB = 0.12F;                                                   // 배경색 B
+constexpr float kClearColorR = 0.05F;                                                   // 배경색 R (더 어둡게 해 큐브 대비 강조)
+constexpr float kClearColorG = 0.05F;                                                   // 배경색 G
+constexpr float kClearColorB = 0.08F;                                                   // 배경색 B
 constexpr float kClearColorA = 1.0F;                                                    // 배경색 알파
 const std::string kVertexShader = std::string(SHADER_ASSET_DIR) + "/shader_vertex";     // 정점 셰이더 경로
 const std::string kFragmentShader = std::string(SHADER_ASSET_DIR) + "/shader_fragment"; // 프래그먼트 셰이더 경로
@@ -26,10 +28,10 @@ Renderer::~Renderer()
         glDeleteVertexArrays(1, &cube_vao_); // 큐브 VAO 제거
     if (cube_vbo_ != 0)
         glDeleteBuffers(1, &cube_vbo_); // 큐브 VBO 제거
-    if (window_)
+    if (window_ptr_)
     {
-        glfwDestroyWindow(window_); // GLFW 창 파괴
-        window_ = nullptr;
+        glfwDestroyWindow(window_ptr_); // GLFW 창 파괴
+        window_ptr_ = nullptr;
     }
     glfwTerminate(); // GLFW 전역 정리
 }
@@ -49,26 +51,34 @@ bool Renderer::init(int width, int height, const std::string &title)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    window_ = glfwCreateWindow(width,
-                               height,
-                               title.c_str(),
-                               nullptr,
-                               nullptr);
-    if (!window_)
+    window_ptr_ = glfwCreateWindow(width,
+                                   height,
+                                   title.c_str(),
+                                   nullptr,
+                                   nullptr);
+    if (!window_ptr_)
     {
         std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
         return false;
     }
-    glfwMakeContextCurrent(window_); // 현재 스레드에 컨텍스트 바인딩
-    glfwSwapInterval(1);             // vsync 켜기
+    glfwMakeContextCurrent(window_ptr_); // 현재 스레드에 컨텍스트 바인딩
+    glfwSwapInterval(1);                 // vsync 켜기
+    std::clog << "[renderer] window created: " << width << "x" << height << " (" << title << ")" << std::endl;
 
     glViewport(0, 0, width, height); // 렌더링 영역을 창 크기에 맞게 설정
-    glEnable(GL_DEPTH_TEST);         // 깊이 테스트 활성화
+
+    GLint depth_attachment_type = 0;
+    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER,
+                                          GL_DEPTH,
+                                          GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                          &depth_attachment_type);
+    std::clog << "[renderer] GL version: " << reinterpret_cast<const char *>(glGetString(GL_VERSION)) << std::endl;
 
     try
     {
         shader_program_ = loadShaders(kVertexShader, kFragmentShader); // 셰이더 로드 및 컴파일
+        std::clog << "[renderer] shaders loaded: " << kVertexShader << ", " << kFragmentShader << std::endl;
     }
     catch (const std::exception &ex)
     {
@@ -81,51 +91,57 @@ bool Renderer::init(int width, int height, const std::string &title)
     return true; // 성공
 }
 
-void Renderer::draw(const RenderQueue &queue)
+void Renderer::draw(const RenderQueue &queue, const glm::mat4 &view, const glm::mat4 &projection)
 {
-    if (shader_program_ == 0 || cube_vao_ == 0)
-        return;                                                           // 초기화 실패 시 그리지 않음
+    auto log_error = [](const char *where)
+    {
+        GLenum err = glGetError();
+        if (err != GL_NO_ERROR)
+        {
+            std::clog << "[renderer] gl error at " << where << ": 0x" << std::hex << err << std::dec << std::endl;
+        }
+    };
+    int fb_width = 0;
+    int fb_height = 0;
+    glfwGetFramebufferSize(window_ptr_, &fb_width, &fb_height);
+
     glClearColor(kClearColorR, kClearColorG, kClearColorB, kClearColorA); // 배경색 지정
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);                   // 컬러/깊이 버퍼 초기화
     glUseProgram(shader_program_);                                        // 셰이더 사용
-
-    // glm을 사용한 카메라 행렬 설정
-    // view matrix: 카메라를 (0,0,3) 위치에 두고 원점을 바라보게함
-    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
-                                 glm::vec3(0.0f, 0.0f, 0.0f),
-                                 glm::vec3(0.0f, 1.0f, 0.0f));
-
-    // projection matrix: 45도 시야각(FOV)의 원근 투영 설정 (실제 창 비율 사용)
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), static_cast<float>(width_) / static_cast<float>(height_), 0.1f, 100.0f);
+    log_error("glUseProgram");
 
     // shader에 행렬 전달
-    glUniformMatrix4fv(glGetUniformLocation(shader_program_, "view"), 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(glGetUniformLocation(shader_program_, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(view_loc_, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(projection_loc_, 1, GL_FALSE, glm::value_ptr(projection));
+    log_error("set view/projection");
 
     // -- render queue의 모든 객체 그리기 --
     glBindVertexArray(cube_vao_);
+    log_error("bind VAO");
+
     for (const auto &command : queue)
     {
         if (command.model_id != 0)
             continue; // 현재는 큐브 모델만 렌더링
 
         // 엔티티의 모델 행렬 전달 후 그리기
-        glUniformMatrix4fv(glGetUniformLocation(shader_program_, "model"), 1, GL_FALSE, glm::value_ptr(command.transform));
+        glUniformMatrix4fv(model_loc_, 1, GL_FALSE, glm::value_ptr(command.transform));
         glDrawArrays(GL_TRIANGLES, 0, cube_vertex_count_);
+        log_error("glDrawArrays");
     }
     glBindVertexArray(0);
 }
 
 void Renderer::swapBuffers()
 {
-    if (window_)
-        glfwSwapBuffers(window_);
+    if (window_ptr_)
+        glfwSwapBuffers(window_ptr_);
 }
 
 void Renderer::pollEvents()
 {
     glfwPollEvents();
-    if (window_ && glfwWindowShouldClose(window_))
+    if (window_ptr_ && glfwWindowShouldClose(window_ptr_))
     {
         should_close_ = true;
     }
@@ -162,6 +178,11 @@ GLuint Renderer::loadShaders(const std::string &vertex_shader_path, const std::s
     model_loc_ = glGetUniformLocation(program, "model");           // 모델 유니폼 위치
     view_loc_ = glGetUniformLocation(program, "view");             // 뷰 유니폼 위치
     projection_loc_ = glGetUniformLocation(program, "projection"); // 프로젝션 유니폼 위치
+    if (model_loc_ == -1 || view_loc_ == -1 || projection_loc_ == -1)
+    {
+        std::clog << "[renderer] warning: uniform location invalid "
+                  << "(model=" << model_loc_ << ", view=" << view_loc_ << ", proj=" << projection_loc_ << ")\n";
+    }
 
     return program; // 프로그램 핸들 반환
 }
@@ -224,4 +245,6 @@ void Renderer::createCubeMesh()
 
     glBindVertexArray(0);             // VAO 바인딩 해제
     glBindBuffer(GL_ARRAY_BUFFER, 0); // VBO 해제
+    std::clog << "[renderer] cube mesh ready: vao=" << cube_vao_ << " vbo=" << cube_vbo_
+              << " vertices=" << cube_vertex_count_ << std::endl;
 }

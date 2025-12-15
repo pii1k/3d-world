@@ -16,6 +16,8 @@ public:
     void processMouseMovement(float offset_x, float offset_y);
     void processMouseScroll(float offset_y);
 
+    void setAspectRatio(float aspect_ratio) { aspect_ratio_ = aspect_ratio; };
+
 private:
     // 카메라 속성
     glm::vec3 position_;
@@ -31,8 +33,8 @@ private:
     // 카메라 옵션
     float movement_speed_;
     float mouse_sensitivity_;
-    float fov_; // field of view (시야각)
-    float aspect_ratio_;
+    float fov_;
+    float aspect_ratio_ = 1.0f;
 
     // 카메라 벡터들을 다시 계산하는 내부 함수
     void updateCameraVectors();

@@ -9,9 +9,9 @@ PUBLIC
 )
 
 target_link_libraries(graphics
-    PUBLIC
-        OpenGL::GL
-        glfw
+PUBLIC
+    OpenGL::GL
+    glfw
 )
 
 target_compile_definitions(graphics
