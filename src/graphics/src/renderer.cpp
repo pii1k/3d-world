@@ -62,8 +62,8 @@ bool Renderer::init(int width, int height, const std::string &title)
         glfwTerminate();
         return false;
     }
-    glfwMakeContextCurrent(window_ptr_); // 현재 스레드에 컨텍스트 바인딩
-    glfwSwapInterval(1);                 // vsync 켜기
+    glfwMakeContextCurrent(window_ptr_);
+    glfwSwapInterval(1);
     std::clog << "[renderer] window created: " << width << "x" << height << " (" << title << ")" << std::endl;
 
     glViewport(0, 0, width, height); // 렌더링 영역을 창 크기에 맞게 설정
@@ -77,18 +77,17 @@ bool Renderer::init(int width, int height, const std::string &title)
 
     try
     {
-        shader_program_ = loadShaders(kVertexShader, kFragmentShader); // 셰이더 로드 및 컴파일
+        shader_program_ = loadShaders(kVertexShader, kFragmentShader);
         std::clog << "[renderer] shaders loaded: " << kVertexShader << ", " << kFragmentShader << std::endl;
     }
     catch (const std::exception &ex)
     {
-        std::cerr << ex.what() << "\n"; // 셰이더 에러 표시
-        return false;                   // 초기화 실패
+        std::cerr << ex.what() << "\n";
+        return false;
     }
 
     createCubeMesh(); // 큐브 메시 준비
-    // should_close_ = false; // 초기에는 창이 열려있음
-    return true; // 성공
+    return true;
 }
 
 void Renderer::draw(const RenderQueue &queue, const glm::mat4 &view, const glm::mat4 &projection)

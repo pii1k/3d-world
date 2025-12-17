@@ -10,17 +10,9 @@ class RenderSystem
 public:
     void update(Registry &registry, RenderQueue &queue)
     {
-
-        for (const auto &pair : registry.transforms_)
-        {
-            Entity entity_id = pair.first;
-            if (registry.renderables_.count(entity_id))
-            {
-                const RenderableComponent &renderable = registry.renderables_.at(entity_id);
-                const TransformComponent &transform = pair.second;
-
-                queue.push_back({renderable.model_id, transform.getTransform()});
-            }
-        }
+        registry.forEachRenderable([&queue](Entity /*entity*/,
+                                            const TransformComponent &transform,
+                                            const RenderableComponent &renderable)
+                                   { queue.push_back({renderable.model_id, transform.getTransform()}); });
     }
 };

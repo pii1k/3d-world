@@ -1,41 +1,47 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+
+struct CameraConfig
+{
+    float fov = 45.0f;
+    float aspect_ratio = 16.0f / 9.0f;
+    float near_plane = 0.1f;
+    float far_plane = 1000.0f;
+};
 
 class Camera
 {
 public:
-    // 생성자
-    Camera(glm::vec3 position);
-    // Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 3.0f));
+    explicit Camera(const glm::vec3 &position,
+                    const glm::quat &orientation,
+                    const CameraConfig &config);
+
+    explicit Camera(const glm::vec3 &position,
+                    const CameraConfig &config = {});
 
     glm::mat4 getViewMatrix() const;
     glm::mat4 getProjectionMatrix() const;
-    void processKeyborad(char direction, float delta_time);
-    void processMouseMovement(float offset_x, float offset_y);
-    void processMouseScroll(float offset_y);
 
-    void setAspectRatio(float aspect_ratio) { aspect_ratio_ = aspect_ratio; };
+    const glm::vec3 &getPosition() const { return position_; }
+    void setPosition(const glm::vec3 &position);
+
+    const glm::quat &getOrientation() const { return orientation_; }
+    void setOrientation(const glm::quat &orientation);
+
+    float getAspectRatio() const { return aspect_ratio_; }
+    void setAspectRatio(float aspect_ratio);
+
+    void rotate(float yaw, float pitch);
+    void zoom(float fov_degrees);
 
 private:
-    // 카메라 속성
     glm::vec3 position_;
-    glm::vec3 front_;
-    glm::vec3 up_;
-    glm::vec3 right_;
-    glm::vec3 world_up_;
+    glm::quat orientation_;
 
-    // 오일러 각(카메라 방향)
-    float yaw_;
-    float pitch_;
-
-    // 카메라 옵션
-    float movement_speed_;
-    float mouse_sensitivity_;
     float fov_;
-    float aspect_ratio_ = 1.0f;
-
-    // 카메라 벡터들을 다시 계산하는 내부 함수
-    void updateCameraVectors();
+    float aspect_ratio_;
+    float near_plane_;
+    float far_plane_;
 };

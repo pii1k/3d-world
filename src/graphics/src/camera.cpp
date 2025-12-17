@@ -1,94 +1,67 @@
-#include "camera.hpp"
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/matrix_transform.hpp>
-#include <glm/geometric.hpp>
-#include <glm/trigonometric.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
-Camera::Camera(glm::vec3 position)
+#include "camera.hpp"
+
+Camera::Camera(const glm::vec3 &position,
+               const glm::quat &orientation,
+               const CameraConfig &config)
     : position_(position),
-      world_up_(glm::vec3(0.0f, 1.0f, 0.0f)),
-      front_(glm::vec3(0.0f, 0.0f, -1.0f)),
-      yaw_(-90.0f), // yaw는 0일때 +x 방향을 보므로, -z 방향을 보기위해 -90으로 시작
-      pitch_(0.0f),
-      movement_speed_(2.5f),
-      mouse_sensitivity_(0.03f),
-      fov_(45.0f)
+      orientation_(orientation),
+      fov_(config.fov),
+      aspect_ratio_(config.aspect_ratio),
+      near_plane_(config.near_plane),
+      far_plane_(config.far_plane) {}
+
+Camera::Camera(const glm::vec3 &position, const CameraConfig &config)
+    : Camera(position, glm::quat(1.0f, 0.0f, 0.0f, 0.0f), config)
 {
-    this->updateCameraVectors();
 }
 
-// 카메라의 위치(position)와 방향(front), 위(up) 벡터를 사용하여 view 행렬 계산 -> glm::lookAt 함수가 이 역할을 해줌
 glm::mat4 Camera::getViewMatrix() const
 {
-    return glm::lookAt(position_, position_ + front_, up_);
+    // 쿼터니언을 회전 행렬로 변환, 위치를 이동 행렬로 변환. view 행렬은 카메라 변환의 역행렬임
+    glm::mat4 view_matrix = glm::mat4_cast(glm::conjugate(orientation_));
+    view_matrix = glm::translate(view_matrix, -position_);
+    return view_matrix;
 }
 
-// 원근 투영(perspective projection) 행렬 계산 -> 시야각, 종횡비, 0.1f와 100.0f는 near/far 평면
 glm::mat4 Camera::getProjectionMatrix() const
 {
-    return glm::perspective(glm::radians(fov_), aspect_ratio_, 0.1f, 100.0f);
+    return glm::perspective(glm::radians(fov_), aspect_ratio_, near_plane_, far_plane_);
 }
 
-// delta_time을 곱해줘 프레임 속도에 관계없이 일정한 속도로 움직이게함
-void Camera::processKeyborad(char direction, float delta_time)
+void Camera::setPosition(const glm::vec3 &position)
 {
-    float velocity = movement_speed_ * delta_time;
-
-    if (direction == 'W')
-        position_ += front_ * velocity;
-
-    if (direction == 'S')
-        position_ -= front_ * velocity;
-
-    if (direction == 'A')
-        position_ -= right_ * velocity;
-
-    if (direction == 'D')
-        position_ += right_ * velocity;
+    position_ = position;
 }
 
-// 마우스의 움직임(offset x, y)에 따라 카메라의 방향 (yaw, pitch) 변경
-void Camera::processMouseMovement(float offset_x, float offset_y)
+void Camera::setOrientation(const glm::quat &orientation)
 {
-    offset_x *= mouse_sensitivity_;
-    offset_y *= mouse_sensitivity_;
-
-    yaw_ += offset_x;
-    pitch_ += offset_y;
-
-    // pitch(상하 각도)가 90도 이상으로 넘어가지 않도록 제한
-    if (pitch_ > 89.0f)
-        pitch_ = 89.0f;
-    if (pitch_ < -89.0f)
-        pitch_ = -89.0f;
-
-    // 변경된 yaw, pitch 값을 바탕으로 실제 방향 벡터 다시 계산
-    updateCameraVectors();
+    orientation_ = glm::normalize(orientation);
 }
 
-// 마우스 휠 스크롤에 따라 시야각을 조절하여 줌 인/아웃 효과
-void Camera::processMouseScroll(float offset_y)
+void Camera::setAspectRatio(float aspect_ratio)
 {
-    fov_ -= offset_y;
+    aspect_ratio_ = aspect_ratio;
+}
+
+void Camera::rotate(float yaw, float pitch)
+{
+    glm::quat yaw_rotation = glm::angleAxis(glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 right = glm::mat3_cast(orientation_) * glm::vec3(1.0f, 0.0f, 0.0f);
+    glm::quat pitch_rotation = glm::angleAxis(glm::radians(pitch), right);
+
+    orientation_ = yaw_rotation * pitch_rotation * orientation_;
+    orientation_ = glm::normalize(orientation_);
+}
+
+void Camera::zoom(float fov_degrees)
+{
+    fov_ = fov_degrees;
     if (fov_ < 1.0f)
         fov_ = 1.0f;
-    if (fov_ > 45.0f)
-        fov_ = 45.0f;
-}
-
-// yaw와 pitch 각도로부터 실제 front, right, up 벡터를 계산하는 핵심 함수
-void Camera::updateCameraVectors()
-{
-    glm::vec3 new_front;
-    new_front.x = cos(glm::radians(yaw_)) * cos(glm::radians(pitch_));
-    new_front.y = sin(glm::radians(pitch_));
-    new_front.z = sin(glm::radians(yaw_)) * cos(glm::radians(pitch_));
-    front_ = glm::normalize(new_front);
-
-    // right 벡터와 up 벡터도 다시 계산
-    // right 벡터는 월드 좌표계의 up 벡터와 front 벡터를 외적하여 구함 (corss product)
-    right_ = glm::normalize(glm::cross(front_, world_up_));
-    // up 벡터는 right 벡터와 front 벡터를 외적하여 구함
-    up_ = glm::normalize(glm::cross(right_, front_));
+    if (fov_ > 90.0f)
+        fov_ = 90.0f;
 }

@@ -1,5 +1,6 @@
 add_library(app STATIC
     src/engine.cpp
+    src/third_person_camera_controller.cpp
 )
 
 target_include_directories(app

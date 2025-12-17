@@ -23,3 +23,23 @@ struct RenderableComponent
 {
     int model_id = 0; // 0: 큐브, 1: 구체 등
 };
+
+enum class LightType
+{
+    Directional,
+    Point,
+    Spot,
+};
+
+struct LightComponent
+{
+    LightType type{LightType::Directional};
+    glm::vec3 color{1.0f};
+    float intensity{1.0f};
+    glm::vec3 position{0.0f};
+    glm::vec3 direction{0, -1, 0};
+    float range{15.0f};
+    float inner_cone{0.85f};
+    float outer_cone{0.9f};
+    bool enabled{true};
+};
