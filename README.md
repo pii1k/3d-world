@@ -1,3 +1,115 @@
+2025-12-21 구조 점검
+```
+1. Compile-time dependency
+┌──────────────────────────────┐
+│        Application (APP)     │
+│------------------------------│
+│ Engine: frame orchestration  │
+│ Prefabs: entity assembly     │
+│ Input: event→command mapping │
+│ (Game/Camera/Sim policies)   │
+└──────────────┬───────────────┘
+               │ depends on
+               ▼
+┌──────────────────────────────┐
+│          ECS / World          │
+│------------------------------│
+│ Entity lifecycle             │
+│  - Entity{index,gen}         │
+│  - create/destroy/alive      │
+│ Components storage           │
+│  - Transform/Renderable/...  │
+│ Systems (Update side)        │
+│  - Simulation/Camera/...     │
+│ RenderExtractSystem          │
+│  - reads ECS → emits DrawCmd │
+└──────────────┬───────────────┘
+               │ uses ONLY neutral types
+               ▼
+┌──────────────────────────────┐
+│     Render API (Neutral)      │
+│------------------------------│
+│ DrawCommand                   │
+│  - mesh_h, material_h         │
+│  - transform, sort_key        │
+│ RenderQueue (frame-local)     │
+│ Typed Handles (idx,gen)       │
+└──────────────┬───────────────┘
+               │ depends on
+               ▼
+┌──────────────────────────────┐
+│        Graphics (GFX)         │
+│------------------------------│
+│ Renderer: consumes queue      │
+│ ResourceDB: resolves handles  │
+│  - Mesh/Material/Shader       │
+│ Backend: GLFW+OpenGL          │
+└──────────────────────────────┘
+
+[Dependency Rule]
+- ECS/World never includes OpenGL/GLFW/Mesh/Shader headers
+- Graphics never includes Registry/Components headers
+- The only bridge is Render API (DrawCommand/Handles/RenderQueue)
+
+
+2. Runtime FRAME LOOP
+(0) OS/Window System
+    │
+    ▼
+(1) Backend (GLFW)
+    - PollEvents()
+    - raw input events 발생
+    │
+    ▼
+(2) Input Queue (APP)
+    - InputEvent들을 저장 (Key, Mouse, Time, Mods...)
+    - "직접 컨트롤러 호출" 금지 (필수 분리 지점)
+    │
+    ▼
+(3) Command Mapping (APP)
+    - InputEvent → GameCommand 변환
+      ex) W down → MoveForward(start)
+          mouse dx/dy → CameraLook(delta)
+          space → ToggleMode
+    │
+    ▼
+(4) Update / Simulation (ECS Systems)
+    - World/Components 갱신
+      Transform, Velocity, Camera, AI state...
+    - Entity alive 체크로 stale 방지
+    │
+    ▼
+(5) Render Extract (ECS side, CPU)
+    - Renderable Entity List(연속 벡터) 순회
+    - 필요한 컴포넌트 읽기(Transform/Renderable)
+    - DrawCommand 생성 + RenderQueue push
+    │
+    ▼
+(6) Render Submit (GFX side, GPU)
+    - Renderer consumes RenderQueue
+    - ResourceDB resolves handles(idx,gen)
+    - Bind material/shader, bind mesh, set uniforms
+    - glDraw* 호출
+    │
+    ▼
+(7) SwapBuffers / Present
+    - 화면 출력
+    │
+    └─────────────── 다음 프레임으로 반복 ────────────────►
+```
+---
+
+2025-12-21 TODO(jyan): 추후 보완해야할 부분 정리
+- Entity 생명주기: Entity{index, gen} + create/destroy/alive + removeComponent. ID 재사용 안전 필수
+- 연속 데이터 순회: ComponentArray에 entity_ids 병렬 배열 추가 → forEachRenderable 등은 map 대신 이 배열을 순회
+- Render API 확장: DrawCommand = {mesh_h, material_h, transform, sort_key, flags} + typed handle(idx, gen)
+- ResourceDB 분리: Mesh/Material/Shader를 핸들로 등록/조회하는 DB를 Renderer 외부에 두고, Renderer는 RenderQueue만 소비
+- Material 분리: 색상 등 머티리얼 속성을 Renderable에서 분리 → Material 테이블(최소 baseColor)로 이동. 이후 텍스처/PBR 확장
+- 입력 파이프: 이벤트 큐 → 커맨드 매핑 → 시스템 업데이트. GLFW 콜백이 컨트롤러를 직접 호출하지 않도록 경계 설정
+- 디버그/릴리스: per-draw glGetError 제거, KHR_debug/디버그 플래그로 한정. 기본 상태(cull face 등) 초기 설정
+
+---
+
 2025-12-11
 프로젝트 구조 설계중..
 기존 설계 구조는 다음과 같이 헥사고날 아키텍처를 이용하려고 했음(테스트와 고도의 추상화를 통해 아름다운 설계를 하고싶었음. 세미나를 인상깊게 듣기도 해서.. 최대한 참고하여 설계함)
