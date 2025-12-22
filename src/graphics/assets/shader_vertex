@@ -1,10 +1,21 @@
 #version 330 core
 layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNormal;
+layout (location = 2) in vec2 aTexCoord;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-void main() {
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
+out vec3 vWorldPos;
+out vec3 vNormal;
+out vec2 vUv;
+
+void main()
+{
+    vec4 world_pos = model * vec4(aPos, 1.0);
+    vWorldPos = world_pos.xyz;
+    vNormal = mat3(transpose(inverse(model))) * aNormal;
+    vUv = aTexCoord;
+    gl_Position = projection * view * world_pos;
 }

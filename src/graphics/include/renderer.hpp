@@ -4,12 +4,15 @@
 #define GL_GLEXT_PROTOTYPES
 #endif
 
+#include "mesh.hpp"
 #include "render_data.hpp"
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <GLFW/glfw3.h>
 #include <glm/mat4x4.hpp>
+#include <memory>
 #include <string>
+#include <vector>
 
 class Renderer
 {
@@ -27,18 +30,21 @@ public:
 
 private:
     GLuint loadShaders(const std::string &vertex_shader_path, const std::string &fragment_shader_path);
-    void createCubeMesh();
+    void registerBuiltinMeshes();
+    int registerMesh(std::unique_ptr<Mesh> mesh, int preferred_id = -1);
+    Mesh *meshFromId(int mesh_id);
 
     GLFWwindow *window_ptr_ = nullptr;
-    bool should_close_ = false; // 윈도 종료 여부
-    int width_ = 0;             // 창 너비
-    int height_ = 0;            // 창 높이
+    bool should_close_ = false;
+    int width_ = 0;
+    int height_ = 0;
 
-    GLuint shader_program_ = 0;   // GPU 셰이더 프로그램 핸들
-    GLint model_loc_ = -1;        // 모델 행렬 유니폼 위치
-    GLint view_loc_ = -1;         // 뷰 행렬 유니폼 위치
-    GLint projection_loc_ = -1;   // 프로젝션 행렬 유니폼 위치
-    GLuint cube_vao_ = 0;         // 큐브 VAO
-    GLuint cube_vbo_ = 0;         // 큐브 VBO
-    GLsizei cube_vertex_count_{}; // 큐브 정점 수
+    GLuint shader_program_ = 0;
+    GLint model_loc_ = -1;
+    GLint view_loc_ = -1;
+    GLint projection_loc_ = -1;
+    GLint color_loc_ = -1;
+    GLint use_grid_loc_ = -1;
+
+    std::vector<std::unique_ptr<Mesh>> meshes_;
 };

@@ -1,4 +1,5 @@
-// Registry를 순회하며 렌더링이 필요한 엔티티를 찾아, 그리기 명령(DrawCommand)을 생성하는 역할만 함
+// 현재는 Registry를 순회하며 렌더링이 필요한 엔티티를 찾아, 그리기 명령(DrawCommand)을 생성하는 역할만 함
+
 #pragma once
 
 #include "component.hpp"
@@ -13,6 +14,9 @@ public:
         registry.forEachRenderable([&queue](Entity /*entity*/,
                                             const TransformComponent &transform,
                                             const RenderableComponent &renderable)
-                                   { queue.push_back({renderable.model_id, transform.getTransform()}); });
+                                   { queue.push_back({renderable.mesh_id,
+                                                      transform.getTransform(),
+                                                      renderable.color,
+                                                      renderable.use_grid}); });
     }
 };

@@ -1,9 +1,16 @@
-// ECS의 핵심 허브. 엔티티를 생성하고, 엔티티에 컴포넌트를 붙이고, 특정 컴포넌트들을 가진 엔티티를 찾는 역할을 한다. 처음이라 아주 간단하게 시작
+// ECS의 핵심 허브. 엔티티를 생성하고, 엔티티에 컴포넌트를 붙이고, 특정 컴포넌트들을 가진 엔티티를 찾는다.
 #pragma once
 
 #include "component.hpp"
+#include "component_array.hpp"
 #include <cstdint>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <type_traits>
+#include <typeindex>
 #include <unordered_map>
+#include <utility>
 
 // entity는 고유한 id일 뿐이다.
 using Entity = std::uint32_t;
@@ -11,61 +18,75 @@ using Entity = std::uint32_t;
 class Registry
 {
 public:
-    // 새로운 엔티티를 생성하고 고유 id를 반환
-    Entity createEntity()
-    {
-        return next_entity_++;
-    };
+    [[nodiscard]] Entity newEntity() noexcept { return next_entity_++; }
 
-    // 엔티티에 컴포넌트 추가
-    void addTransform(Entity entity, TransformComponent component)
+    // 일반적인 컴포넌트 추가 (배열이 없으면 생성)
+    template <typename T>
+    std::decay_t<T> &addComponent(Entity entity, T &&component)
     {
-        transforms_[entity] = component;
+        using Component = std::decay_t<T>;
+        auto *array = getOrCreateArray<Component>();
+        return array->insertData(entity, std::forward<T>(component));
     }
 
-    void addRenderable(Entity entity, RenderableComponent component)
+    // 타입별 단축 함수 (기존 사용성 유지)
+    TransformComponent &addTransform(Entity entity, TransformComponent component)
     {
-        renderables_[entity] = component;
+        return addComponent(entity, std::move(component));
+    }
+    RenderableComponent &addRenderable(Entity entity, RenderableComponent component)
+    {
+        return addComponent(entity, std::move(component));
+    }
+    LightComponent &addLight(Entity entity, LightComponent component) { return addComponent(entity, std::move(component)); }
+
+    // 컴포넌트 조회
+    template <typename T>
+    [[nodiscard]] std::optional<std::reference_wrapper<std::decay_t<T>>> getComponent(Entity entity)
+    {
+        auto *array = getArray<std::decay_t<T>>();
+        return array ? array->find(entity) : std::nullopt;
     }
 
-    void addLight(Entity entity, LightComponent component)
+    template <typename T>
+    [[nodiscard]] std::optional<std::reference_wrapper<const std::decay_t<T>>> getComponent(Entity entity) const
     {
-        lights_[entity] = component;
+        auto *array = getArray<std::decay_t<T>>();
+        return array ? array->find(entity) : std::nullopt;
     }
 
-    TransformComponent *getTransform(Entity entity)
+    std::optional<std::reference_wrapper<TransformComponent>> getTransform(Entity entity)
     {
-        auto it = transforms_.find(entity);
-        return it != transforms_.end() ? &it->second : nullptr;
+        return getComponent<TransformComponent>(entity);
+    }
+    std::optional<std::reference_wrapper<const TransformComponent>> getTransform(Entity entity) const
+    {
+        return getComponent<TransformComponent>(entity);
     }
 
-    const TransformComponent *getTransform(Entity entity) const
+    std::optional<std::reference_wrapper<RenderableComponent>> getRenderable(Entity entity)
     {
-        auto it = transforms_.find(entity);
-        return it != transforms_.end() ? &it->second : nullptr;
+        return getComponent<RenderableComponent>(entity);
+    }
+    std::optional<std::reference_wrapper<const RenderableComponent>> getRenderable(Entity entity) const
+    {
+        return getComponent<RenderableComponent>(entity);
     }
 
-    RenderableComponent *getRenderable(Entity entity)
-    {
-        auto it = renderables_.find(entity);
-        return it != renderables_.end() ? &it->second : nullptr;
-    }
-
-    const RenderableComponent *getRenderable(Entity entity) const
-    {
-        auto it = renderables_.find(entity);
-        return it != renderables_.end() ? &it->second : nullptr;
-    }
-
+    // 특정 컴포넌트 조합을 가진 엔티티 순회 (transform + renderable)
     template <typename Func>
     void forEachRenderable(Func &&func)
     {
-        for (auto &pair : transforms_)
+        auto *transforms = getArray<TransformComponent>();
+        auto *renderables = getArray<RenderableComponent>();
+        if (!transforms || !renderables)
+            return;
+
+        for (const auto &[entity, _] : renderables->entities())
         {
-            auto renderable_it = renderables_.find(pair.first);
-            if (renderable_it != renderables_.end())
+            if (auto transform = transforms->find(entity))
             {
-                func(pair.first, pair.second, renderable_it->second);
+                func(entity, transform->get(), renderables->getData(entity));
             }
         }
     }
@@ -73,25 +94,55 @@ public:
     template <typename Func>
     void forEachRenderable(Func &&func) const
     {
-        for (const auto &pair : transforms_)
+        const auto *transforms = getArray<TransformComponent>();
+        const auto *renderables = getArray<RenderableComponent>();
+        if (!transforms || !renderables)
+            return;
+
+        for (const auto &[entity, _] : renderables->entities())
         {
-            auto renderable_it = renderables_.find(pair.first);
-            if (renderable_it != renderables_.end())
+            if (auto transform = transforms->find(entity))
             {
-                func(pair.first, pair.second, renderable_it->second);
+                func(entity, transform->get(), renderables->getData(entity));
             }
         }
     }
 
-    const std::unordered_map<Entity, TransformComponent> &getTransforms() const { return transforms_; }
-    const std::unordered_map<Entity, RenderableComponent> &getRenderables() const { return renderables_; }
-
-    // (나중에 더 효율적인 방식으로 개선) 지금은 간단하게 map 사용
 private:
-    std::unordered_map<Entity, TransformComponent> transforms_;
-    std::unordered_map<Entity, RenderableComponent> renderables_;
-    std::unordered_map<Entity, LightComponent> lights_;
+    template <typename T>
+    ComponentArray<T> *getArray()
+    {
+        const auto type_idx = std::type_index(typeid(T));
+        auto it = component_arrays_.find(type_idx);
+        if (it == component_arrays_.end())
+            return nullptr;
+        return static_cast<ComponentArray<T> *>(it->second.get());
+    }
+
+    template <typename T>
+    const ComponentArray<T> *getArray() const
+    {
+        const auto type_idx = std::type_index(typeid(T));
+        auto it = component_arrays_.find(type_idx);
+        if (it == component_arrays_.end())
+            return nullptr;
+        return static_cast<const ComponentArray<T> *>(it->second.get());
+    }
+
+    template <typename T>
+    ComponentArray<T> *getOrCreateArray()
+    {
+        const auto type_idx = std::type_index(typeid(T));
+        auto it = component_arrays_.find(type_idx);
+        if (it == component_arrays_.end())
+        {
+            auto [inserted_it, _] = component_arrays_.emplace(type_idx, std::make_unique<ComponentArray<T>>());
+            return static_cast<ComponentArray<T> *>(inserted_it->second.get());
+        }
+        return static_cast<ComponentArray<T> *>(it->second.get());
+    }
 
 private:
+    std::unordered_map<std::type_index, std::unique_ptr<Interface::ComponentArray>> component_arrays_;
     Entity next_entity_ = 0;
 };

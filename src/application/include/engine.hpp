@@ -37,6 +37,9 @@ private:
     std::unique_ptr<Camera> camera_ptr_;
     std::unique_ptr<CameraController> camera_controller_ptr_;
 
+    Entity player_entity_{};
+    Entity ground_entity_{};
+
     GLFWwindow *window_ptr_ = nullptr;
     float last_frame_time = 0.0f;
 };

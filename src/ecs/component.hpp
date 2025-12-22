@@ -18,10 +18,12 @@ struct TransformComponent
     }
 };
 
-// 렌러링이 가능한 객체임을 나타냄 지금은 어떤 모델을 그릴지만 간단히 정의
+// 렌더링이 가능한 객체임을 나타냄 지금은 어떤 모델을 그릴지만 간단히 정의
 struct RenderableComponent
 {
-    int model_id = 0; // 0: 큐브, 1: 구체 등
+    int mesh_id = 0;                   // 렌더러가 이해할 수 있는 메시 ID
+    glm::vec3 color{1.0f, 0.5f, 0.2f}; // 기본 색상 (주황)
+    bool use_grid = false;             // 평면에 격자 패턴을 입힐지 여부
 };
 
 enum class LightType

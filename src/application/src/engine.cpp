@@ -2,12 +2,15 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 
 #include "GLFW/glfw3.h"
 #include "component.hpp"
 #include "engine.hpp"
+#include "prefabs.hpp"
 #include "registry.hpp"
+#include "render_data.hpp"
 #include "third_person_camera_controller.hpp"
 
 namespace
@@ -15,6 +18,7 @@ namespace
 constexpr float kWidth = 1280;
 constexpr float kHeight = 720;
 constexpr auto kTitle = "Autonomous Driving Simulation";
+constexpr float kPlayerSpeed = 0.5f;
 
 void frambuffer_size_callback(GLFWwindow *window_ptr, int width, int height)
 {
@@ -75,7 +79,6 @@ void Engine::run()
 
 void Engine::handleWindowResize(int width, int height)
 {
-    // 너비/높이가 0인 상태로 viewport와 투영행렬을 만들면 NaN이 생겨서 장면이 사라질 수 있음
     const int clamped_width = std::max(width, 1);
     const int clamped_height = std::max(height, 1);
     glViewport(0, 0, clamped_width, clamped_height);
@@ -84,8 +87,6 @@ void Engine::handleWindowResize(int width, int height)
 
 void Engine::handleMouseMove(double xpos, double ypos)
 {
-    // 마우스 입력 처리는 이제 컨트롤러의 책임입니다.
-    // (Engine은 더 이상 last_x, last_y를 알 필요가 없습니다. 컨트롤러가 내부적으로 처리)
     static float last_x = xpos;
     static float last_y = ypos;
     static bool first_mouse = true;
@@ -134,22 +135,23 @@ void Engine::init()
     registry_ptr_ = std::make_unique<Registry>();
     render_system_ptr_ = std::make_unique<RenderSystem>();
 
-    // TODO(jyan): player entity -> 나중에 scene이나 world 클래스로 대체
-    Entity player_entity = registry_ptr_->createEntity();
-    TransformComponent player_transform = {{0.0f, 0.5f, 0.0f}};
-    registry_ptr_->addTransform(player_entity, player_transform);
-    registry_ptr_->addRenderable(player_entity, RenderableComponent{0}); // 플레이어를 임시로 큐브로 표시
+    player_entity_ = Prefabs::createPlayer(*registry_ptr_, static_cast<int>(MeshId::Cube));
+    ground_entity_ = Prefabs::createGround(*registry_ptr_, static_cast<int>(MeshId::Plane), 50.0f);
 
-    // 4. 카메라와 컨트롤러 생성 및 주입
+    //  camera
     CameraConfig camera_config;
-    camera_config.aspect_ratio = 1280.0f / 720.0f;
+    camera_config.aspect_ratio = kWidth / kHeight;
 
     ThirdPersonControllerConfig controller_config;
     controller_config.distance_to_target = 7.0f;
 
-    camera_ptr_ = std::make_unique<Camera>(player_transform.position, camera_config);
-    camera_controller_ptr_ =
-        std::make_unique<ThirdPersonCameraController>(*camera_ptr_, *registry_ptr_, player_entity, controller_config);
+    const auto player_transform = registry_ptr_->getTransform(player_entity_);
+    glm::vec3 camera_origin = player_transform ? player_transform->get().position : glm::vec3{0.0f, 1.0f, 0.0f};
+    camera_ptr_ = std::make_unique<Camera>(camera_origin, camera_config);
+    camera_controller_ptr_ = std::make_unique<ThirdPersonCameraController>(*camera_ptr_,
+                                                                           *registry_ptr_,
+                                                                           player_entity_,
+                                                                           controller_config);
 }
 
 void Engine::setupCallback()
@@ -163,15 +165,37 @@ void Engine::setupCallback()
 
 void Engine::loadAssets()
 {
-    // 월드의 다른 객체들(나무, 돌 등)을 생성합니다.
-    registry_ptr_->addTransform(registry_ptr_->createEntity(), {{5.0f, 0.0f, -5.0f}, {}, {1.0f, 3.0f, 1.0f}});
-    registry_ptr_->addRenderable(registry_ptr_->createEntity(), RenderableComponent{0});
+    // 월드의 다른 객체들(나무, 돌 등)을 생성합니다. 지금은 테스트용 큐브 하나만 추가.
+    Entity prop = registry_ptr_->newEntity();
+    registry_ptr_->addTransform(prop, {{5.0f, 1.5f, -5.0f}, {}, {1.0f, 3.0f, 1.0f}});
+    registry_ptr_->addRenderable(prop, RenderableComponent{static_cast<int>(MeshId::Cube), {0.3f, 0.6f, 1.0f}, false});
 }
 
 void Engine::proccessInput(float delta_time)
 {
     if (glfwGetKey(window_ptr_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window_ptr_, true);
+
+    auto player_transform = registry_ptr_->getTransform(player_entity_);
+    if (!player_transform)
+        return;
+
+    glm::vec3 direction{0.0f};
+    if (glfwGetKey(window_ptr_, GLFW_KEY_W) == GLFW_PRESS)
+        direction.z -= 1.0f;
+    if (glfwGetKey(window_ptr_, GLFW_KEY_S) == GLFW_PRESS)
+        direction.z += 1.0f;
+    if (glfwGetKey(window_ptr_, GLFW_KEY_A) == GLFW_PRESS)
+        direction.x -= 1.0f;
+    if (glfwGetKey(window_ptr_, GLFW_KEY_D) == GLFW_PRESS)
+        direction.x += 1.0f;
+
+    if (glm::length(direction) > 0.0f)
+    {
+        direction = glm::normalize(direction);
+        auto &transform = player_transform->get();
+        transform.position += direction * kPlayerSpeed * delta_time;
+    }
 }
 
 void Engine::update(float delta_time)

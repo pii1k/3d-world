@@ -1,6 +1,8 @@
 add_library(graphics STATIC
     src/renderer.cpp
     src/camera.cpp
+    src/mesh.cpp
+    src/primitives.cpp
 )
 
 target_include_directories(graphics

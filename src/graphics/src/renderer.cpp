@@ -1,10 +1,9 @@
 #include "renderer.hpp"
+#include "primitives.hpp"
 #include "render_data.hpp"
 #include "shader.hpp"
 
 #include <GL/glext.h>
-#include <algorithm>
-#include <array>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -12,36 +11,32 @@
 
 namespace
 {
-constexpr float kClearColorR = 0.05F;                                                   // 배경색 R (더 어둡게 해 큐브 대비 강조)
-constexpr float kClearColorG = 0.05F;                                                   // 배경색 G
-constexpr float kClearColorB = 0.08F;                                                   // 배경색 B
-constexpr float kClearColorA = 1.0F;                                                    // 배경색 알파
-const std::string kVertexShader = std::string(SHADER_ASSET_DIR) + "/shader_vertex";     // 정점 셰이더 경로
-const std::string kFragmentShader = std::string(SHADER_ASSET_DIR) + "/shader_fragment"; // 프래그먼트 셰이더 경로
+constexpr float kClearColorR = 0.05F;
+constexpr float kClearColorG = 0.05F;
+constexpr float kClearColorB = 0.08F;
+constexpr float kClearColorA = 1.0F;
+const std::string kVertexShader = std::string(SHADER_ASSET_DIR) + "/shader_vertex";
+const std::string kFragmentShader = std::string(SHADER_ASSET_DIR) + "/shader_fragment";
 } // namespace
 
 Renderer::~Renderer()
 {
     if (shader_program_ != 0)
-        glDeleteProgram(shader_program_); // 셰이더 프로그램 제거
-    if (cube_vao_ != 0)
-        glDeleteVertexArrays(1, &cube_vao_); // 큐브 VAO 제거
-    if (cube_vbo_ != 0)
-        glDeleteBuffers(1, &cube_vbo_); // 큐브 VBO 제거
+        glDeleteProgram(shader_program_);
     if (window_ptr_)
     {
-        glfwDestroyWindow(window_ptr_); // GLFW 창 파괴
+        glfwDestroyWindow(window_ptr_);
         window_ptr_ = nullptr;
     }
-    glfwTerminate(); // GLFW 전역 정리
+    glfwTerminate();
 }
 
 bool Renderer::init(int width, int height, const std::string &title)
 {
-    width_ = width;   // 창 너비 저장
-    height_ = height; // 창 높이 저장
+    width_ = width;
+    height_ = height;
 
-    if (!glfwInit()) // GLFW 초기화
+    if (!glfwInit())
     {
         std::cerr << "Failed to initialize GLFW\n";
         return false;
@@ -66,13 +61,9 @@ bool Renderer::init(int width, int height, const std::string &title)
     glfwSwapInterval(1);
     std::clog << "[renderer] window created: " << width << "x" << height << " (" << title << ")" << std::endl;
 
-    glViewport(0, 0, width, height); // 렌더링 영역을 창 크기에 맞게 설정
+    glViewport(0, 0, width, height);
+    glEnable(GL_DEPTH_TEST);
 
-    GLint depth_attachment_type = 0;
-    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER,
-                                          GL_DEPTH,
-                                          GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-                                          &depth_attachment_type);
     std::clog << "[renderer] GL version: " << reinterpret_cast<const char *>(glGetString(GL_VERSION)) << std::endl;
 
     try
@@ -86,7 +77,7 @@ bool Renderer::init(int width, int height, const std::string &title)
         return false;
     }
 
-    createCubeMesh(); // 큐브 메시 준비
+    registerBuiltinMeshes();
     return true;
 }
 
@@ -100,33 +91,29 @@ void Renderer::draw(const RenderQueue &queue, const glm::mat4 &view, const glm::
             std::clog << "[renderer] gl error at " << where << ": 0x" << std::hex << err << std::dec << std::endl;
         }
     };
-    int fb_width = 0;
-    int fb_height = 0;
-    glfwGetFramebufferSize(window_ptr_, &fb_width, &fb_height);
 
-    glClearColor(kClearColorR, kClearColorG, kClearColorB, kClearColorA); // 배경색 지정
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);                   // 컬러/깊이 버퍼 초기화
-    glUseProgram(shader_program_);                                        // 셰이더 사용
+    glClearColor(kClearColorR, kClearColorG, kClearColorB, kClearColorA);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glUseProgram(shader_program_);
     log_error("glUseProgram");
 
-    // shader에 행렬 전달
     glUniformMatrix4fv(view_loc_, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projection_loc_, 1, GL_FALSE, glm::value_ptr(projection));
     log_error("set view/projection");
 
-    // -- render queue의 모든 객체 그리기 --
-    glBindVertexArray(cube_vao_);
-    log_error("bind VAO");
-
     for (const auto &command : queue)
     {
-        if (command.model_id != 0)
-            continue; // 현재는 큐브 모델만 렌더링
+        Mesh *mesh = meshFromId(command.mesh_id);
+        if (!mesh)
+            continue;
 
-        // 엔티티의 모델 행렬 전달 후 그리기
         glUniformMatrix4fv(model_loc_, 1, GL_FALSE, glm::value_ptr(command.transform));
-        glDrawArrays(GL_TRIANGLES, 0, cube_vertex_count_);
-        log_error("glDrawArrays");
+        glUniform3f(color_loc_, command.color.x, command.color.y, command.color.z);
+        glUniform1i(use_grid_loc_, command.use_grid ? 1 : 0);
+
+        glBindVertexArray(mesh->getVAO());
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh->getIndexCount()), GL_UNSIGNED_INT, nullptr);
+        log_error("glDrawElements");
     }
     glBindVertexArray(0);
 }
@@ -148,102 +135,78 @@ void Renderer::pollEvents()
 
 GLuint Renderer::loadShaders(const std::string &vertex_shader_path, const std::string &fragment_shader_path)
 {
-    const std::string vertex_source = readShaderFile(vertex_shader_path);     // 정점 셰이더 파일 읽기
-    const std::string fragment_source = readShaderFile(fragment_shader_path); // 프래그먼트 셰이더 파일 읽기
+    const std::string vertex_source = readShaderFile(vertex_shader_path);
+    const std::string fragment_source = readShaderFile(fragment_shader_path);
 
-    GLuint vertex_shader = compileShader(GL_VERTEX_SHADER, vertex_source);       // 정점 셰이더 컴파일
-    GLuint fragment_shader = compileShader(GL_FRAGMENT_SHADER, fragment_source); // 프래그먼트 셰이더 컴파일
+    GLuint vertex_shader = compileShader(GL_VERTEX_SHADER, vertex_source);
+    GLuint fragment_shader = compileShader(GL_FRAGMENT_SHADER, fragment_source);
 
-    GLuint program = glCreateProgram();       // 프로그램 객체 생성
-    glAttachShader(program, vertex_shader);   // 정점 셰이더 부착
-    glAttachShader(program, fragment_shader); // 프래그먼트 셰이더 부착
-    glLinkProgram(program);                   // 프로그램 링크
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vertex_shader);
+    glAttachShader(program, fragment_shader);
+    glLinkProgram(program);
 
-    GLint linked = 0;                                 // 링크 성공 여부
-    glGetProgramiv(program, GL_LINK_STATUS, &linked); // 링크 상태 질의
+    GLint linked = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, &linked);
     if (linked != GL_TRUE)
     {
-        char log[1024];                                                       // 로그 버퍼
-        glGetProgramInfoLog(program, sizeof(log), nullptr, log);              // 링크 로그 읽기
-        glDeleteProgram(program);                                             // 실패 시 프로그램 삭제
-        glDeleteShader(vertex_shader);                                        // 셰이더 삭제
-        glDeleteShader(fragment_shader);                                      // 셰이더 삭제
-        throw std::runtime_error(std::string("Program link failed: ") + log); // 예외 발생
+        char log[1024];
+        glGetProgramInfoLog(program, sizeof(log), nullptr, log);
+        glDeleteProgram(program);
+        glDeleteShader(vertex_shader);
+        glDeleteShader(fragment_shader);
+        throw std::runtime_error(std::string("Program link failed: ") + log);
     }
 
-    glDeleteShader(vertex_shader);   // 정점 셰이더 삭제 (링크 후 불필요)
-    glDeleteShader(fragment_shader); // 프래그먼트 셰이더 삭제
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
 
-    model_loc_ = glGetUniformLocation(program, "model");           // 모델 유니폼 위치
-    view_loc_ = glGetUniformLocation(program, "view");             // 뷰 유니폼 위치
-    projection_loc_ = glGetUniformLocation(program, "projection"); // 프로젝션 유니폼 위치
-    if (model_loc_ == -1 || view_loc_ == -1 || projection_loc_ == -1)
+    model_loc_ = glGetUniformLocation(program, "model");
+    view_loc_ = glGetUniformLocation(program, "view");
+    projection_loc_ = glGetUniformLocation(program, "projection");
+    color_loc_ = glGetUniformLocation(program, "uColor");
+    use_grid_loc_ = glGetUniformLocation(program, "uUseGrid");
+    if (model_loc_ == -1 || view_loc_ == -1 || projection_loc_ == -1 || color_loc_ == -1 || use_grid_loc_ == -1)
     {
         std::clog << "[renderer] warning: uniform location invalid "
-                  << "(model=" << model_loc_ << ", view=" << view_loc_ << ", proj=" << projection_loc_ << ")\n";
+                  << "(model=" << model_loc_ << ", view=" << view_loc_ << ", proj=" << projection_loc_ << ", color=" << color_loc_
+                  << ", grid=" << use_grid_loc_ << ")\n";
     }
 
-    return program; // 프로그램 핸들 반환
+    return program;
 }
 
-void Renderer::createCubeMesh()
+void Renderer::registerBuiltinMeshes()
 {
-    constexpr float cube_vertices[] = {
-        -0.5F, -0.5F, -0.5F,
-        0.5F, -0.5F, -0.5F,
-        0.5F, 0.5F, -0.5F,
-        0.5F, 0.5F, -0.5F,
-        -0.5F, 0.5F, -0.5F,
-        -0.5F, -0.5F, -0.5F,
+    registerMesh(Primitives::createCube(), static_cast<int>(MeshId::Cube));
+    registerMesh(Primitives::createPlane(1.0f, 1.0f), static_cast<int>(MeshId::Plane));
+    std::clog << "[renderer] builtin meshes registered (cube=" << static_cast<int>(MeshId::Cube)
+              << ", plane=" << static_cast<int>(MeshId::Plane) << ")\n";
+}
 
-        -0.5F, -0.5F, 0.5F,
-        0.5F, -0.5F, 0.5F,
-        0.5F, 0.5F, 0.5F,
-        0.5F, 0.5F, 0.5F,
-        -0.5F, 0.5F, 0.5F,
-        -0.5F, -0.5F, 0.5F,
+int Renderer::registerMesh(std::unique_ptr<Mesh> mesh, int preferred_id)
+{
+    if (!mesh)
+        return -1;
 
-        -0.5F, 0.5F, 0.5F,
-        -0.5F, 0.5F, -0.5F,
-        -0.5F, -0.5F, -0.5F,
-        -0.5F, -0.5F, -0.5F,
-        -0.5F, -0.5F, 0.5F,
-        -0.5F, 0.5F, 0.5F,
+    if (preferred_id >= 0)
+    {
+        if (static_cast<size_t>(preferred_id) >= meshes_.size())
+            meshes_.resize(static_cast<size_t>(preferred_id) + 1);
+        meshes_[static_cast<size_t>(preferred_id)] = std::move(mesh);
+        return preferred_id;
+    }
 
-        0.5F, 0.5F, 0.5F,
-        0.5F, 0.5F, -0.5F,
-        0.5F, -0.5F, -0.5F,
-        0.5F, -0.5F, -0.5F,
-        0.5F, -0.5F, 0.5F,
-        0.5F, 0.5F, 0.5F,
+    meshes_.push_back(std::move(mesh));
+    return static_cast<int>(meshes_.size() - 1);
+}
 
-        -0.5F, -0.5F, -0.5F,
-        0.5F, -0.5F, -0.5F,
-        0.5F, -0.5F, 0.5F,
-        0.5F, -0.5F, 0.5F,
-        -0.5F, -0.5F, 0.5F,
-        -0.5F, -0.5F, -0.5F,
-
-        -0.5F, 0.5F, -0.5F,
-        0.5F, 0.5F, -0.5F,
-        0.5F, 0.5F, 0.5F,
-        0.5F, 0.5F, 0.5F,
-        -0.5F, 0.5F, 0.5F,
-        -0.5F, 0.5F, -0.5F}; // 큐브 36개 정점
-
-    cube_vertex_count_ = 36;          // 삼각형 정점 수 저장
-    glGenVertexArrays(1, &cube_vao_); // VAO 생성
-    glGenBuffers(1, &cube_vbo_);      // VBO 생성
-
-    glBindVertexArray(cube_vao_);                                                        // VAO 바인딩
-    glBindBuffer(GL_ARRAY_BUFFER, cube_vbo_);                                            // VBO 바인딩
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW); // 정점 데이터 업로드
-
-    glEnableVertexAttribArray(0);                                                                    // 위치 속성 활성화
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), reinterpret_cast<void *>(0)); // 위치 속성 포인터 지정
-
-    glBindVertexArray(0);             // VAO 바인딩 해제
-    glBindBuffer(GL_ARRAY_BUFFER, 0); // VBO 해제
-    std::clog << "[renderer] cube mesh ready: vao=" << cube_vao_ << " vbo=" << cube_vbo_
-              << " vertices=" << cube_vertex_count_ << std::endl;
+Mesh *Renderer::meshFromId(int mesh_id)
+{
+    if (mesh_id < 0)
+        return nullptr;
+    const size_t idx = static_cast<size_t>(mesh_id);
+    if (idx >= meshes_.size())
+        return nullptr;
+    return meshes_[idx].get();
 }

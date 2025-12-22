@@ -42,11 +42,11 @@ void ThirdPersonCameraController::processMouseScroll(float yoffset)
 void ThirdPersonCameraController::update(float deltaTime)
 {
     (void)deltaTime;
-    const TransformComponent *target_transform = registry_.getTransform(target_entity_);
+    const auto target_transform = registry_.getTransform(target_entity_);
     if (!target_transform)
         return;
 
-    const glm::vec3 &target_position = target_transform->position;
+    const glm::vec3 &target_position = target_transform->get().position;
 
     // 타겟을 중심으로 한 카메라의 상대 위치 계산
     float horizontal_distance = distance_ * cos(glm::radians(pitch_));

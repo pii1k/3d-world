@@ -1,15 +1,25 @@
 #version 330 core
-out vec4 FragColor;
-struct Material
-{
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-    float shininess;
-};
+in vec3 vWorldPos;
+in vec3 vNormal;
+in vec2 vUv;
 
-uniform Material material;
+out vec4 FragColor;
+
+uniform vec3 uColor;
+uniform bool uUseGrid;
+
+vec3 gridColor(vec3 baseColor, vec3 worldPos)
+{
+    float line_width = 0.01;
+    vec2 grid = abs(fract(worldPos.xz) - 0.5);
+    float line = step(0.5 - line_width, grid.x) + step(0.5 - line_width, grid.y);
+    line = clamp(line, 0.0, 1.0);
+    return mix(baseColor, vec3(0.9), line);
+}
+
 void main()
 {
-    FragColor = vec4(1.0, 0.5, 0.2, 1.0); // 주황색
+    vec3 base = uColor;
+    vec3 color = uUseGrid ? gridColor(base, vWorldPos) : base;
+    FragColor = vec4(color, 1.0);
 }
