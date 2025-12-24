@@ -9,11 +9,24 @@
 // TODO(jyan): config는 추후에 따로 빼던가 해야할듯
 struct ThirdPersonControllerConfig
 {
-    float distance_to_target = 5.0f;
-    float initial_pitch = 20.0f;
-    float initial_yaw = 0.0f;
-    float mouse_sensitivity = 0.1f;
-    float zoom_speed = 1.0f;
+    float mouse_sensitivity = 0.15f; // deg per pixel
+    float zoom_speed = 1.0f;         // distance per scroll step
+
+    float min_distance = 1.5f;
+    float max_distance = 10.0f;
+
+    float min_pitch_deg = -75.0f;
+    float max_pitch_deg = 20.0f;
+
+    glm::vec3 pivot_offset = {0.0f, 1.6f, 0.0f};
+};
+
+struct ThirdPersonControllerState
+{
+    entity_id target{};
+    float yaw_deg = 0.0f;
+    float pitch_deg = -15.0f;
+    float distance = 4.0f;
 };
 
 class ThirdPersonCameraController : public CameraController
@@ -24,20 +37,14 @@ public:
                                 entity_id target_entity,
                                 const ThirdPersonControllerConfig &config);
 
-    void processMouseMovement(float xoffset, float yoffset) override;
-    void processMouseScroll(float yoffset) override;
+    void processMouseMovement(float offset_x, float offset_y) override;
+    void processMouseScroll(float offset_y) override;
 
     void update(float deltaTime) override;
 
 private:
     Camera &camera_;
     World &world_;
-    entity_id target_entity_;
-
-    float distance_;
-    float pitch_;
-    float yaw_;
-
-    float sensitivity_;
-    float zoom_speed_;
+    ThirdPersonControllerState controller_state_;
+    ThirdPersonControllerConfig controller_config_;
 };

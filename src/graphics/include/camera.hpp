@@ -33,6 +33,15 @@ public:
     float getAspectRatio() const { return aspect_ratio_; }
     void setAspectRatio(float aspect_ratio);
 
+    float getFov() const { return fov_; }
+    void setFov(float fov_degrees);
+
+    void setClipPlanes(float near_plane, float far_plane);
+
+    glm::vec3 forward() const;
+    glm::vec3 right() const;
+    glm::vec3 up() const;
+
     void rotate(float yaw, float pitch);
     void zoom(float fov_degrees);
 

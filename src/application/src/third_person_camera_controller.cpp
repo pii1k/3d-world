@@ -1,73 +1,45 @@
-#include <cmath>
-#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "component.hpp"
 #include "third_person_camera_controller.hpp"
 
-ThirdPersonCameraController::ThirdPersonCameraController(Camera &camera,
-                                                         World &world,
-                                                         entity_id target_entity,
-                                                         const ThirdPersonControllerConfig &config)
+ThirdPersonCameraController::ThirdPersonCameraController(
+    Camera &camera,
+    World &world,
+    entity_id target_entity,
+    const ThirdPersonControllerConfig &config)
     : camera_(camera),
-      world_(world),
-      target_entity_(target_entity),
-      distance_(config.distance_to_target),
-      pitch_(config.initial_pitch),
-      yaw_(config.initial_yaw),
-      sensitivity_(config.mouse_sensitivity),
-      zoom_speed_(config.zoom_speed)
-{
-}
+      world_(world) {}
 
-void ThirdPersonCameraController::processMouseMovement(float xoffset, float yoffset)
+void ThirdPersonCameraController::processMouseMovement(float dx, float dy)
 {
-    yaw_ -= xoffset * sensitivity_;
-    pitch_ += yoffset * sensitivity_;
-
-    if (pitch_ > 89.0f)
-        pitch_ = 89.0f;
-    if (pitch_ < -5.0f)
-        pitch_ = -5.0f;
+    controller_state_.yaw_deg += dx * controller_config_.mouse_sensitivity;
+    controller_state_.pitch_deg += dy * controller_config_.mouse_sensitivity;
+    controller_state_.pitch_deg = std::clamp(controller_state_.pitch_deg, controller_config_.min_pitch_deg, controller_config_.max_pitch_deg);
 }
 
 void ThirdPersonCameraController::processMouseScroll(float yoffset)
 {
-    distance_ -= yoffset * zoom_speed_;
-    if (distance_ < 2.0f)
-        distance_ = 2.0f;
-    if (distance_ > 20.0f)
-        distance_ = 20.0f;
+    controller_state_.distance -= yoffset * controller_config_.zoom_speed;
+    controller_state_.distance = std::clamp(controller_state_.distance, controller_config_.min_distance, controller_config_.max_distance);
 }
 
-void ThirdPersonCameraController::update(float deltaTime)
+void ThirdPersonCameraController::update(float /*dt*/)
 {
-    (void)deltaTime;
-    const auto target_transform = world_.getComponent<TransformComponent>(target_entity_);
-    if (!target_transform)
+    const auto tr = world_.getComponent<TransformComponent>(controller_state_.target);
+    if (!tr)
         return;
 
-    const glm::vec3 &target_position = target_transform->get().position;
+    const glm::vec3 pivot = tr->get().position + controller_config_.pivot_offset;
 
-    // 타겟을 중심으로 한 카메라의 상대 위치 계산
-    float horizontal_distance = distance_ * cos(glm::radians(pitch_));
-    float vertical_distance = distance_ * sin(glm::radians(pitch_));
+    const float yaw = glm::radians(controller_state_.yaw_deg);
+    const float pitch = glm::radians(controller_state_.pitch_deg);
 
-    float theta = glm::radians(yaw_);
-    float offset_x = horizontal_distance * sin(theta);
-    float offset_z = horizontal_distance * cos(theta);
+    const glm::quat q = glm::normalize(
+        glm::angleAxis(yaw, glm::vec3(0, 1, 0)) *
+        glm::angleAxis(pitch, glm::vec3(1, 0, 0)));
 
-    glm::vec3 camera_position;
-    camera_position.x = target_position.x - offset_x;
-    camera_position.z = target_position.z - offset_z;
-    camera_position.y = target_position.y + vertical_distance;
-
-    camera_.setPosition(camera_position);
-
-    // 카메라가 항상 타겟을 바라보도록 방향(쿼터니언) 설정
-    // lookAt 행렬의 역행렬에서 회전 부분만 추출하여 쿼터니언을 만듭니다.
-    glm::mat4 look_at_matrix = glm::lookAt(camera_position, target_position, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::quat camera_orientation = glm::conjugate(glm::quat_cast(look_at_matrix));
-
-    camera_.setOrientation(camera_orientation);
+    const glm::vec3 forward = q * glm::vec3(0, 0, -1);
+    camera_.setOrientation(q);
+    camera_.setPosition(pivot - forward * controller_state_.distance);
 }

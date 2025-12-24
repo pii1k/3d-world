@@ -141,8 +141,7 @@ void Engine::init()
     CameraConfig camera_config;
     camera_config.aspect_ratio = kWidth / kHeight;
 
-    ThirdPersonControllerConfig controller_config;
-    controller_config.distance_to_target = 7.0f;
+    ThirdPersonControllerConfig default_controller_config;
 
     const auto player_transform = world_ptr_->getComponent<TransformComponent>(player_entity_);
     glm::vec3 camera_origin = player_transform ? player_transform->get().position : glm::vec3{0.0f, 1.0f, 0.0f};
@@ -150,7 +149,7 @@ void Engine::init()
     camera_controller_ptr_ = std::make_unique<ThirdPersonCameraController>(*camera_ptr_,
                                                                            *world_ptr_,
                                                                            player_entity_,
-                                                                           controller_config);
+                                                                           default_controller_config);
 }
 
 void Engine::setupCallback()
