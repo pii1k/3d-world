@@ -4,7 +4,7 @@
 
 #include "camera.hpp"
 #include "camera_controller.hpp"
-#include "registry.hpp"
+#include "world.hpp"
 
 // TODO(jyan): config는 추후에 따로 빼던가 해야할듯
 struct ThirdPersonControllerConfig
@@ -20,8 +20,8 @@ class ThirdPersonCameraController : public CameraController
 {
 public:
     ThirdPersonCameraController(Camera &camera,
-                                Registry &registry,
-                                Entity target_entity,
+                                World &world,
+                                entity_id target_entity,
                                 const ThirdPersonControllerConfig &config);
 
     void processMouseMovement(float xoffset, float yoffset) override;
@@ -31,8 +31,8 @@ public:
 
 private:
     Camera &camera_;
-    Registry &registry_;
-    Entity target_entity_;
+    World &world_;
+    entity_id target_entity_;
 
     float distance_;
     float pitch_;

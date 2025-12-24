@@ -5,11 +5,11 @@
 #include "third_person_camera_controller.hpp"
 
 ThirdPersonCameraController::ThirdPersonCameraController(Camera &camera,
-                                                         Registry &registry,
-                                                         Entity target_entity,
+                                                         World &world,
+                                                         entity_id target_entity,
                                                          const ThirdPersonControllerConfig &config)
     : camera_(camera),
-      registry_(registry),
+      world_(world),
       target_entity_(target_entity),
       distance_(config.distance_to_target),
       pitch_(config.initial_pitch),
@@ -42,7 +42,7 @@ void ThirdPersonCameraController::processMouseScroll(float yoffset)
 void ThirdPersonCameraController::update(float deltaTime)
 {
     (void)deltaTime;
-    const auto target_transform = registry_.getTransform(target_entity_);
+    const auto target_transform = world_.getTransform(target_entity_);
     if (!target_transform)
         return;
 

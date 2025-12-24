@@ -1,11 +1,11 @@
 #pragma once
 
-#include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/glm.hpp>
 #include <vector>
 
-#include "registry.hpp"
+#include "component.hpp"
+#include "world.hpp"
 
 namespace
 {
@@ -23,13 +23,13 @@ struct GpuLight
 class LightingSystem
 {
 public:
-    void update(const Registry &registry)
+    void update(const World &world)
     {
         gpu_lights_.clear();
-        for (auto &[entity, light] : registry.lights_)
-        {
+        world.forEachComponent<LightComponent>([this](World::Entity /*entity*/, const LightComponent &light)
+                                               {
             if (!light.enabled)
-                continue;
+                return;
             GpuLight gpu_light{};
             gpu_light.position = glm::vec4(light.position, static_cast<float>(light.type));
             gpu_light.direction = glm::vec4(glm::normalize(light.direction), light.range);
@@ -38,8 +38,7 @@ public:
             gpu_lights_.push_back(gpu_light);
 
             if (gpu_lights_.size() >= kMaxLights)
-                break;
-        }
+                return; });
     }
 
     const std::vector<GpuLight> &getGpuLights() { return gpu_lights_; }

@@ -19,4 +19,16 @@ struct DrawCommand
     bool use_grid;
 };
 
-using RenderQueue = std::vector<DrawCommand>;
+struct RenderQueue
+{
+    std::vector<DrawCommand> draw_commands;
+
+    void clear() { draw_commands.clear(); }
+    void reserve(size_t n) { draw_commands.reserve(n); };
+    void push_back(DrawCommand command) { draw_commands.push_back(std::move(command)); }
+
+    auto begin() noexcept { return draw_commands.begin(); }
+    auto end() noexcept { return draw_commands.end(); }
+    auto begin() const noexcept { return draw_commands.begin(); }
+    auto end() const noexcept { return draw_commands.end(); }
+};

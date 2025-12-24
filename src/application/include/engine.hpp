@@ -5,9 +5,9 @@
 #include "GLFW/glfw3.h"
 #include "camera.hpp"
 #include "camera_controller.hpp"
-#include "registry.hpp"
 #include "render_system.hpp"
 #include "renderer.hpp"
+#include "world.hpp"
 
 class Engine
 {
@@ -32,13 +32,13 @@ private:
     void render();
 
     std::unique_ptr<Renderer> renderer_ptr_;
-    std::unique_ptr<Registry> registry_ptr_;
+    std::unique_ptr<World> world_ptr_;
     std::unique_ptr<RenderSystem> render_system_ptr_;
     std::unique_ptr<Camera> camera_ptr_;
     std::unique_ptr<CameraController> camera_controller_ptr_;
 
-    Entity player_entity_{};
-    Entity ground_entity_{};
+    entity_id player_entity_{};
+    entity_id ground_entity_{};
 
     GLFWwindow *window_ptr_ = nullptr;
     float last_frame_time = 0.0f;

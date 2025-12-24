@@ -2,13 +2,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-// Component들을 연속 메모리에 보관하기 위한 컨테이너.
-// Registry가 내부적으로 사용하며, 특정 타입의 컴포넌트를 엔티티 ID와 매핑한다.
 using Entity = std::uint32_t;
 
 namespace Interface
@@ -17,6 +16,7 @@ class ComponentArray
 {
 public:
     virtual ~ComponentArray() = default;
+    virtual void remove(Entity entity) = 0;
 };
 } // namespace Interface
 
@@ -24,6 +24,8 @@ template <typename T>
 class ComponentArray : public Interface::ComponentArray
 {
 public:
+    void remove(Entity entity) override { removeData(entity); }
+
     template <typename... Args>
     T &insertData(Entity entity, Args &&...args)
     {
