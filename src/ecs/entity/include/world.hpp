@@ -21,7 +21,6 @@ class World
 public:
     using Entity = entity_id;
 
-    [[nodiscard]]
     Entity newEntity()
     {
         if (!available_entities_.empty())
@@ -47,7 +46,14 @@ public:
     std::decay_t<T> &addComponent(Entity entity, T &&component)
     {
         using Component = std::decay_t<T>;
-        auto *array = getOrCreateArray<Component>();
+        const auto type_idx = std::type_index(typeid(Component));
+        auto it = component_pools_.find(type_idx);
+        if (it == component_pools_.end())
+        {
+            auto [inserted_it, _] = component_pools_.emplace(type_idx, std::make_unique<ComponentArray<Component>>());
+            it = inserted_it;
+        }
+        auto *array = static_cast<ComponentArray<Component> *>(it->second.get());
         return array->insertData(entity, std::forward<T>(component));
     }
 
@@ -62,108 +68,41 @@ public:
     }
 
     template <typename T>
-    [[nodiscard]]
     std::optional<std::reference_wrapper<std::decay_t<T>>> getComponent(Entity entity)
     {
         auto *array = getArray<std::decay_t<T>>();
         return array ? array->find(entity) : std::nullopt;
     }
 
-    template <typename T>
-    [[nodiscard]]
-    std::optional<std::reference_wrapper<const std::decay_t<T>>> getComponent(Entity entity) const
-    {
-        const auto *array = getArray<std::decay_t<T>>();
-        return array ? array->find(entity) : std::nullopt;
-    }
-
-    TransformComponent &addTransform(Entity entity, TransformComponent component)
-    {
-        return addComponent(entity, std::move(component));
-    }
-
-    RenderableComponent &addRenderable(Entity entity, RenderableComponent component)
-    {
-        return addComponent(entity, std::move(component));
-    }
-
-    LightComponent &addLight(Entity entity, LightComponent component)
-    {
-        return addComponent(entity, std::move(component));
-    }
-
-    std::optional<std::reference_wrapper<TransformComponent>> getTransform(Entity entity)
-    {
-        return getComponent<TransformComponent>(entity);
-    }
-
-    std::optional<std::reference_wrapper<const TransformComponent>> getTransform(Entity entity) const
-    {
-        return getComponent<TransformComponent>(entity);
-    }
-
-    std::optional<std::reference_wrapper<RenderableComponent>> getRenderable(Entity entity)
-    {
-        return getComponent<RenderableComponent>(entity);
-    }
-
-    std::optional<std::reference_wrapper<const RenderableComponent>> getRenderable(Entity entity) const
-    {
-        return getComponent<RenderableComponent>(entity);
-    }
-
-    template <typename Func>
-    void forEachRenderable(Func &&func)
-    {
-        auto *transforms = getArray<TransformComponent>();
-        auto *renderables = getArray<RenderableComponent>();
-        if (!transforms || !renderables)
-            return;
-
-        for (const auto &[entity, _] : renderables->entities())
-        {
-            if (auto transform = transforms->find(entity))
-            {
-                func(entity, transform->get(), renderables->getData(entity));
-            }
-        }
-    }
-
-    template <typename Func>
-    void forEachRenderable(Func &&func) const
-    {
-        const auto *transforms = getArray<TransformComponent>();
-        const auto *renderables = getArray<RenderableComponent>();
-        if (!transforms || !renderables)
-            return;
-
-        for (const auto &[entity, _] : renderables->entities())
-        {
-            if (auto transform = transforms->find(entity))
-            {
-                func(entity, transform->get(), renderables->getData(entity));
-            }
-        }
-    }
-
     template <typename T, typename Func>
     void forEachComponent(Func &&func)
     {
-        auto *array = getArray<std::decay_t<T>>();
+        using C = std::remove_cv_t<std::remove_reference_t<T>>;
+        auto *array = getArray<C>();
         if (!array)
             return;
+
         for (const auto &[entity, _] : array->entities())
         {
             func(entity, array->getData(entity));
         }
     }
 
+    template <typename T>
+    std::optional<std::reference_wrapper<const std::decay_t<T>>> getComponent(Entity entity) const
+    {
+        const auto *array = getArray<std::decay_t<T>>();
+        return array ? array->find(entity) : std::nullopt;
+    }
+
     template <typename T, typename Func>
     void forEachComponent(Func &&func) const
     {
-        const auto *array = getArray<std::decay_t<T>>();
+        using C = std::remove_cv_t<std::remove_reference_t<T>>;
+        const auto *array = getArray<C>();
         if (!array)
             return;
+
         for (const auto &[entity, _] : array->entities())
         {
             func(entity, array->getData(entity));
@@ -175,7 +114,7 @@ public:
         Entity entity = newEntity();
         TransformComponent transform{};
         transform.position = position;
-        addTransform(entity, std::move(transform));
+        addComponent(entity, std::move(transform));
         return entity;
     }
 
@@ -198,19 +137,6 @@ private:
         if (it == component_pools_.end())
             return nullptr;
         return static_cast<const ComponentArray<T> *>(it->second.get());
-    }
-
-    template <typename T>
-    ComponentArray<T> *getOrCreateArray()
-    {
-        const auto type_idx = std::type_index(typeid(T));
-        auto it = component_pools_.find(type_idx);
-        if (it == component_pools_.end())
-        {
-            auto [inserted_it, _] = component_pools_.emplace(type_idx, std::make_unique<ComponentArray<T>>());
-            return static_cast<ComponentArray<T> *>(inserted_it->second.get());
-        }
-        return static_cast<ComponentArray<T> *>(it->second.get());
     }
 
 private:

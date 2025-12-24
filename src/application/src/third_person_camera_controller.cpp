@@ -2,6 +2,7 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include "component.hpp"
 #include "third_person_camera_controller.hpp"
 
 ThirdPersonCameraController::ThirdPersonCameraController(Camera &camera,
@@ -42,7 +43,7 @@ void ThirdPersonCameraController::processMouseScroll(float yoffset)
 void ThirdPersonCameraController::update(float deltaTime)
 {
     (void)deltaTime;
-    const auto target_transform = world_.getTransform(target_entity_);
+    const auto target_transform = world_.getComponent<TransformComponent>(target_entity_);
     if (!target_transform)
         return;
 

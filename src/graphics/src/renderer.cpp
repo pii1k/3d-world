@@ -101,19 +101,28 @@ void Renderer::draw(const RenderQueue &queue, const glm::mat4 &view, const glm::
     glUniformMatrix4fv(projection_loc_, 1, GL_FALSE, glm::value_ptr(projection));
     log_error("set view/projection");
 
-    for (const auto &command : queue)
+    auto draw_item = [&](const RenderItem &item)
     {
-        Mesh *mesh = meshFromId(command.mesh_id);
+        Mesh *mesh = getMeshFromId(static_cast<int>(item.mesh_handle));
         if (!mesh)
-            continue;
+            return;
 
-        glUniformMatrix4fv(model_loc_, 1, GL_FALSE, glm::value_ptr(command.transform));
-        glUniform3f(color_loc_, command.color.x, command.color.y, command.color.z);
-        glUniform1i(use_grid_loc_, command.use_grid ? 1 : 0);
+        glUniformMatrix4fv(model_loc_, 1, GL_FALSE, glm::value_ptr(item.model));
+        glUniform3f(color_loc_, item.color.x, item.color.y, item.color.z);
+        glUniform1i(use_grid_loc_, item.use_grid ? 1 : 0);
 
         glBindVertexArray(mesh->getVAO());
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh->getIndexCount()), GL_UNSIGNED_INT, nullptr);
         log_error("glDrawElements");
+    };
+
+    for (const auto &item : queue.opaque)
+    {
+        draw_item(item);
+    }
+    for (const auto &item : queue.transparent)
+    {
+        draw_item(item);
     }
     glBindVertexArray(0);
 }
@@ -201,7 +210,7 @@ int Renderer::registerMesh(std::unique_ptr<Mesh> mesh, int preferred_id)
     return static_cast<int>(meshes_.size() - 1);
 }
 
-Mesh *Renderer::meshFromId(int mesh_id)
+Mesh *Renderer::getMeshFromId(int mesh_id)
 {
     if (mesh_id < 0)
         return nullptr;

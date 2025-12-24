@@ -18,9 +18,9 @@ struct TransformComponent
 
 struct RenderableComponent
 {
-    int mesh_id = 0;                   // 렌더러가 이해할 수 있는 메시 ID
-    glm::vec3 color{1.0f, 0.5f, 0.2f}; // 기본 색상 (주황)
-    bool use_grid = false;             // 평면에 격자 패턴을 입힐지 여부
+    int mesh_id = 0;
+    glm::vec3 color{1.0f, 0.5f, 0.2f};
+    bool use_grid = false;
 };
 
 enum class LightType

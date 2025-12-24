@@ -32,7 +32,7 @@ private:
     GLuint loadShaders(const std::string &vertex_shader_path, const std::string &fragment_shader_path);
     void registerBuiltinMeshes();
     int registerMesh(std::unique_ptr<Mesh> mesh, int preferred_id = -1);
-    Mesh *meshFromId(int mesh_id);
+    Mesh *getMeshFromId(int mesh_id);
 
     GLFWwindow *window_ptr_ = nullptr;
     bool should_close_ = false;

@@ -144,7 +144,7 @@ void Engine::init()
     ThirdPersonControllerConfig controller_config;
     controller_config.distance_to_target = 7.0f;
 
-    const auto player_transform = world_ptr_->getTransform(player_entity_);
+    const auto player_transform = world_ptr_->getComponent<TransformComponent>(player_entity_);
     glm::vec3 camera_origin = player_transform ? player_transform->get().position : glm::vec3{0.0f, 1.0f, 0.0f};
     camera_ptr_ = std::make_unique<Camera>(camera_origin, camera_config);
     camera_controller_ptr_ = std::make_unique<ThirdPersonCameraController>(*camera_ptr_,
@@ -166,8 +166,8 @@ void Engine::loadAssets()
 {
     // 월드의 다른 객체들(나무, 돌 등)을 생성합니다. 지금은 테스트용 큐브 하나만 추가.
     entity_id prop = world_ptr_->newEntity();
-    world_ptr_->addTransform(prop, {{5.0f, 1.5f, -5.0f}, {}, {1.0f, 3.0f, 1.0f}});
-    world_ptr_->addRenderable(prop, RenderableComponent{static_cast<int>(MeshId::Cube), {0.3f, 0.6f, 1.0f}, false});
+    world_ptr_->addComponent<TransformComponent>(prop, {{5.0f, 1.5f, -5.0f}, {}, {1.0f, 3.0f, 1.0f}});
+    world_ptr_->addComponent<RenderableComponent>(prop, RenderableComponent{static_cast<int>(MeshId::Cube), {0.3f, 0.6f, 1.0f}, false});
 }
 
 void Engine::proccessInput(float delta_time)
@@ -175,7 +175,7 @@ void Engine::proccessInput(float delta_time)
     if (glfwGetKey(window_ptr_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window_ptr_, true);
 
-    auto player_transform = world_ptr_->getTransform(player_entity_);
+    auto player_transform = world_ptr_->getComponent<TransformComponent>(player_entity_);
     if (!player_transform)
         return;
 
