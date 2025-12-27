@@ -14,10 +14,10 @@ constexpr size_t kMaxLights = 16;
 
 struct GpuLight
 {
-    glm::vec4 position;  // w에 type 인코딩
-    glm::vec4 direction; // w에 range
-    glm::vec4 color;     // rgb + intensity
-    glm::vec4 params;    // inner,outer cone 등
+    glm::vec4 position;
+    glm::vec4 direction;
+    glm::vec4 color;
+    glm::vec4 params;
 };
 
 class LightingSystem

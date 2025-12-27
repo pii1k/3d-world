@@ -4,10 +4,40 @@
 
 #include "GLFW/glfw3.h"
 #include "camera.hpp"
-#include "camera_controller.hpp"
+#include "player_movement_system.hpp"
 #include "render_system.hpp"
 #include "renderer.hpp"
+#include "third_person_camera_system.hpp"
 #include "world.hpp"
+
+struct Runtime
+{
+    float last_frame_time = 0.0f;
+};
+
+struct Scene
+{
+    std::unique_ptr<World> world;
+
+    entity_id player_id{};
+    entity_id ground_id{};
+    entity_id camera_id{};
+};
+
+struct RenderContext
+{
+    std::unique_ptr<Renderer> renderer;
+    GLFWwindow *window = nullptr;
+
+    std::unique_ptr<Camera> camera;
+    std::unique_ptr<RenderSystem> render_system;
+};
+
+struct Systems
+{
+    std::unique_ptr<PlayerMovementSystem> player_movement;
+    std::unique_ptr<ThirdPersonCameraSystem> third_person_camera;
+};
 
 class Engine
 {
@@ -17,7 +47,7 @@ public:
 
     void run();
 
-    // intput handles: 콜백 함수들이 호출할거임
+    // GLFW callbacks
     void handleWindowResize(int width, int height);
     void handleMouseMove(double pos_x, double pos_y);
     void handleMouseScroll(double offset_x, double offset_y);
@@ -31,15 +61,8 @@ private:
     void update(float delta_time);
     void render();
 
-    std::unique_ptr<Renderer> renderer_ptr_;
-    std::unique_ptr<World> world_ptr_;
-    std::unique_ptr<RenderSystem> render_system_ptr_;
-    std::unique_ptr<Camera> camera_ptr_;
-    std::unique_ptr<CameraController> camera_controller_ptr_;
-
-    entity_id player_entity_{};
-    entity_id ground_entity_{};
-
-    GLFWwindow *window_ptr_ = nullptr;
-    float last_frame_time = 0.0f;
+    Runtime runtime_;
+    Scene scene_;
+    RenderContext render_ctx_;
+    Systems systems_;
 };

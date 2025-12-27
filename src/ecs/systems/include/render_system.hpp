@@ -21,7 +21,7 @@ public:
 
                 RenderItem item{};
                 item.mesh_handle = static_cast<MeshHandle>(renderable.mesh_id);
-                item.material_handle = 0; // TODO: hook up material component/pipeline
+                item.material_handle = 0; // TODO(jyan): hook up material component/pipeline
                 item.model = transform->get().getTransform();
                 item.color = renderable.color;
                 item.use_grid = renderable.use_grid;

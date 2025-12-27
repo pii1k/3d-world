@@ -47,12 +47,7 @@ public:
     {
         using Component = std::decay_t<T>;
         const auto type_idx = std::type_index(typeid(Component));
-        auto it = component_pools_.find(type_idx);
-        if (it == component_pools_.end())
-        {
-            auto [inserted_it, _] = component_pools_.emplace(type_idx, std::make_unique<ComponentArray<Component>>());
-            it = inserted_it;
-        }
+        auto [it, _] = component_pools_.try_emplace(type_idx, std::make_unique<ComponentArray<Component>>());
         auto *array = static_cast<ComponentArray<Component> *>(it->second.get());
         return array->insertData(entity, std::forward<T>(component));
     }
@@ -77,8 +72,7 @@ public:
     template <typename T, typename Func>
     void forEachComponent(Func &&func)
     {
-        using C = std::remove_cv_t<std::remove_reference_t<T>>;
-        auto *array = getArray<C>();
+        auto *array = getArray<std::decay<T>>();
         if (!array)
             return;
 
@@ -98,8 +92,7 @@ public:
     template <typename T, typename Func>
     void forEachComponent(Func &&func) const
     {
-        using C = std::remove_cv_t<std::remove_reference_t<T>>;
-        const auto *array = getArray<C>();
+        const auto *array = getArray<std::decay_t<T>>();
         if (!array)
             return;
 

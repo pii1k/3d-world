@@ -198,6 +198,7 @@ int Renderer::registerMesh(std::unique_ptr<Mesh> mesh, int preferred_id)
     if (!mesh)
         return -1;
 
+    // TODO(jyan): createCube, cretePlane에 맞춰서 작성된거라 나중에 수정 필요
     if (preferred_id >= 0)
     {
         if (static_cast<size_t>(preferred_id) >= meshes_.size())

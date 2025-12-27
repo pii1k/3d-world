@@ -83,8 +83,9 @@ struct RenderQueue
 
     void sort()
     {
-        auto by_key = [](const RenderItem &lhs, const RenderItem &rhs) { return lhs.sort_key < rhs.sort_key; };
+        auto by_key = [](const RenderItem &lhs, const RenderItem &rhs)
+        { return lhs.sort_key < rhs.sort_key; };
         std::sort(opaque.begin(), opaque.end(), by_key);
-        std::sort(transparent.begin(), transparent.end(), by_key); // far -> near due to key encoding
+        std::sort(transparent.begin(), transparent.end(), by_key);
     }
 };

@@ -20,8 +20,8 @@ entity_id createPlayer(World &world, int mesh_id)
     PhysicsComponent physics{};
     world.addComponent<PhysicsComponent>(entity, std::move(physics));
 
-    PlayerControllerComponent player_contoller{};
-    world.addComponent<PlayerControllerComponent>(entity, std::move(player_contoller));
+    // PlayerControllerComponent player_contoller{};
+    // world.addComponent<PlayerControllerComponent>(entity, std::move(player_contoller));
 
     return entity;
 }

@@ -1,6 +1,5 @@
 add_library(app STATIC
     src/engine.cpp
-    src/third_person_camera_controller.cpp
     src/prefabs.cpp
 )
 
