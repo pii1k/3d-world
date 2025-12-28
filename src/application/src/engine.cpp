@@ -1,13 +1,14 @@
 #include <algorithm>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <iostream>
 #include <memory>
-#include <optional>
 #include <stdexcept>
 
 #include "GLFW/glfw3.h"
 #include "component.hpp"
 #include "engine.hpp"
+#include "orbit_camera_system.hpp"
 #include "prefabs.hpp"
 #include "render_data.hpp"
 
@@ -16,7 +17,6 @@ namespace
 constexpr float kWidth = 1280;
 constexpr float kHeight = 720;
 constexpr auto kTitle = "Autonomous Driving Simulation";
-constexpr float kPlayerSpeed = 0.5f;
 
 void frambuffer_size_callback(GLFWwindow *window_ptr, int width, int height)
 {
@@ -104,21 +104,13 @@ void Engine::handleMouseMove(double xpos, double ypos)
     last_x = xpos;
     last_y = ypos;
 
-    auto input = scene_.world->getComponent<InputComponent>(scene_.player_id);
-    if (input)
-    {
-        input->get().mouse_dx += d_x;
-        input->get().mouse_dy += d_y;
-    }
+    runtime_.mouse_dx += d_x;
+    runtime_.mouse_dy += d_y;
 }
 
 void Engine::handleMouseScroll(double /* offset_x */, double offset_y)
 {
-    auto input = scene_.world->getComponent<InputComponent>(scene_.player_id);
-    if (input)
-    {
-        input->get().scroll_y += static_cast<float>(offset_y);
-    }
+    runtime_.scroll_y += static_cast<float>(offset_y);
 }
 
 void Engine::init()
@@ -138,34 +130,14 @@ void Engine::init()
     scene_.world = std::make_unique<World>();
     render_ctx_.render_system = std::make_unique<RenderSystem>();
 
-    scene_.player_id = Prefabs::createPlayer(*scene_.world, static_cast<int>(MeshId::Cube));
     scene_.ground_id = Prefabs::createGround(*scene_.world, static_cast<int>(MeshId::Plane), 50.0f);
 
-    // camera entity + component
     CameraConfig camera_config;
     camera_config.aspect_ratio = static_cast<float>(kWidth) / static_cast<float>(kHeight);
-
-    const auto player_transform = scene_.world->getComponent<TransformComponent>(scene_.player_id);
-    glm::vec3 camera_origin = player_transform ? player_transform->get().position : glm::vec3{0.0f, 1.0f, 0.0f};
-
-    scene_.camera_id = scene_.world->newEntity();
-    CameraComponent camera_comp{};
-    camera_comp.position = camera_origin;
-    camera_comp.config = camera_config;
-    scene_.world->addComponent<CameraComponent>(scene_.camera_id, std::move(camera_comp));
-
-    ThirdPersonCameraComponent tp_cam{};
-    scene_.world->addComponent<ThirdPersonCameraComponent>(scene_.camera_id, std::move(tp_cam));
-
-    // input on player
-    scene_.world->addComponent<InputComponent>(scene_.player_id, InputComponent{});
-
-    // local render camera
-    render_ctx_.camera = std::make_unique<Camera>(camera_origin, camera_config);
+    render_ctx_.camera = std::make_unique<Camera>(glm::vec3{0.0f, 2.0f, 6.0f}, camera_config);
 
     // systems init
-    systems_.third_person_camera = std::make_unique<ThirdPersonCameraSystem>();
-    systems_.player_movement = std::make_unique<PlayerMovementSystem>();
+    render_ctx_.camera_system = std::make_unique<OrbitCameraSystem>();
 }
 
 void Engine::setupCallback()
@@ -189,18 +161,6 @@ void Engine::proccessInput(float delta_time)
 {
     if (glfwGetKey(render_ctx_.window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(render_ctx_.window, true);
-
-    auto input = scene_.world->getComponent<InputComponent>(scene_.player_id);
-    if (!input)
-        return;
-
-    auto &input_component = input->get();
-    input_component.move_forward = (glfwGetKey(render_ctx_.window, GLFW_KEY_W) == GLFW_PRESS);
-    input_component.move_backward = (glfwGetKey(render_ctx_.window, GLFW_KEY_S) == GLFW_PRESS);
-    input_component.move_right = (glfwGetKey(render_ctx_.window, GLFW_KEY_D) == GLFW_PRESS);
-    input_component.move_left = (glfwGetKey(render_ctx_.window, GLFW_KEY_A) == GLFW_PRESS);
-    input_component.sprint = (glfwGetKey(render_ctx_.window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
-    input_component.interact = (glfwGetKey(render_ctx_.window, GLFW_KEY_E) == GLFW_PRESS);
 }
 
 void Engine::update(float delta_time)
@@ -208,29 +168,16 @@ void Engine::update(float delta_time)
     if (!scene_.world || !render_ctx_.camera)
         return;
 
-    // 1) Move player (camera-relative)
-    systems_.player_movement->update(*scene_.world,
-                                     scene_.player_id,
-                                     scene_.camera_id,
-                                     delta_time);
-
-    // 2) Update third-person camera (mouse look + follow player)
-    systems_.third_person_camera->update(*scene_.world,
-                                         scene_.player_id,
-                                         scene_.camera_id,
-                                         delta_time);
+    render_ctx_.camera_system->update(runtime_.mouse_dx,
+                                      runtime_.mouse_dy,
+                                      runtime_.scroll_y,
+                                      *render_ctx_.camera);
 }
 
 void Engine::render()
 {
     RenderQueue render_queue;
-    render_ctx_.render_system->update(*scene_.world, render_queue);
-    // sync camera object from component
-    if (auto cam_comp = scene_.world->getComponent<CameraComponent>(scene_.camera_id))
-    {
-        render_ctx_.camera->setPosition(cam_comp->get().position);
-        render_ctx_.camera->setOrientation(cam_comp->get().orientation);
-    }
+    render_ctx_.render_system->buildRenderQueue(*scene_.world, render_queue);
     const glm::mat4 view = render_ctx_.camera->getViewMatrix();
     const glm::mat4 projection = render_ctx_.camera->getProjectionMatrix();
     render_ctx_.renderer->draw(render_queue, view, projection);

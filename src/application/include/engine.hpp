@@ -1,27 +1,28 @@
 #pragma once
 
+#include <glm/glm.hpp>
 #include <memory>
 
 #include "GLFW/glfw3.h"
 #include "camera.hpp"
-#include "player_movement_system.hpp"
+#include "orbit_camera_system.hpp"
 #include "render_system.hpp"
 #include "renderer.hpp"
-#include "third_person_camera_system.hpp"
 #include "world.hpp"
 
 struct Runtime
 {
     float last_frame_time = 0.0f;
+    float mouse_dx = 0.0f;
+    float mouse_dy = 0.0f;
+    float scroll_y = 0.0f;
 };
 
 struct Scene
 {
     std::unique_ptr<World> world;
 
-    entity_id player_id{};
     entity_id ground_id{};
-    entity_id camera_id{};
 };
 
 struct RenderContext
@@ -31,12 +32,7 @@ struct RenderContext
 
     std::unique_ptr<Camera> camera;
     std::unique_ptr<RenderSystem> render_system;
-};
-
-struct Systems
-{
-    std::unique_ptr<PlayerMovementSystem> player_movement;
-    std::unique_ptr<ThirdPersonCameraSystem> third_person_camera;
+    std::unique_ptr<OrbitCameraSystem> camera_system;
 };
 
 class Engine
@@ -64,5 +60,4 @@ private:
     Runtime runtime_;
     Scene scene_;
     RenderContext render_ctx_;
-    Systems systems_;
 };

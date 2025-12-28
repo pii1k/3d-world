@@ -5,27 +5,6 @@
 
 namespace Prefabs
 {
-entity_id createPlayer(World &world, int mesh_id)
-{
-    entity_id entity = world.newEntity();
-    TransformComponent transform{};
-    transform.position = {0.0f, 0.5f, 0.0f};
-    world.addComponent<TransformComponent>(entity, std::move(transform));
-
-    RenderableComponent renderable{};
-    renderable.mesh_id = mesh_id;
-    renderable.color = {1.0f, 0.5f, 0.2f}; // 주황 큐브
-    world.addComponent<RenderableComponent>(entity, std::move(renderable));
-
-    PhysicsComponent physics{};
-    world.addComponent<PhysicsComponent>(entity, std::move(physics));
-
-    // PlayerControllerComponent player_contoller{};
-    // world.addComponent<PlayerControllerComponent>(entity, std::move(player_contoller));
-
-    return entity;
-}
-
 entity_id createGround(World &world, int mesh_id, float size)
 {
     entity_id entity = world.newEntity();

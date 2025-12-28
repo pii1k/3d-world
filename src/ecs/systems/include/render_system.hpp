@@ -8,7 +8,7 @@
 class RenderSystem
 {
 public:
-    void update(const World &world, RenderQueue &queue) const
+    void buildRenderQueue(const World &world, RenderQueue &queue) const
     {
         queue.clear();
 
