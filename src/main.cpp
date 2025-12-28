@@ -25,6 +25,8 @@ constexpr int kWindowH = 720;
 
 constexpr float kTickSeconds = 0.12f;
 
+constexpr glm::mat4 kIMat = glm::mat4(1.0f);
+
 int g_framebuffer_w = kWindowW;
 int g_framebuffer_h = kWindowH;
 
@@ -226,10 +228,13 @@ void drawCell(GLuint vao,
               const IVec2 &cell,
               const glm::vec3 &color)
 {
-    const glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(static_cast<float>(cell.x), static_cast<float>(cell.y), 0.0f));
-    const glm::mat4 mvp = projection * model;
+    // frag
+    const glm::mat4 model = glm::translate(kIMat, glm::vec3(static_cast<float>(cell.x), static_cast<float>(cell.y), 0.0f));
+    const glm::mat4 mvp = projection * model; // 지금은 2d라 view 없음
     glUniformMatrix4fv(u_mvp_loc, 1, GL_FALSE, glm::value_ptr(mvp));
     glUniform3f(u_color_loc, color.r, color.g, color.b);
+
+    // load vao
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
@@ -305,17 +310,14 @@ int main()
     const GLint u_color_loc = glGetUniformLocation(shader.getId(), "uColor");
 
     const float quad_vertices[] = {
-        // unit quad in [0,1]x[0,1]
-        0.0f,
-        0.0f,
-        1.0f,
-        0.0f,
-        1.0f,
-        1.0f,
-        0.0f,
-        1.0f,
-    };
-    const unsigned int quad_indices[] = {0, 1, 2, 0, 2, 3};
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f};
+
+    const unsigned int quad_indices[] = {
+        0, 1, 2,
+        0, 2, 3};
 
     GLuint vao = 0;
     GLuint vbo = 0;
@@ -329,7 +331,7 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quad_indices), quad_indices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(0); // aPos
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
     glBindVertexArray(0);
 
@@ -364,14 +366,14 @@ int main()
         glViewport(0, 0, g_framebuffer_w, g_framebuffer_h);
         drawGame(vao, u_mvp_loc, u_color_loc, projection, game);
 
-        // // Mini-map (top-right)
-        // const int margin = 12;
-        // int mini_w = std::max(1, g_framebuffer_w / 4);
-        // int mini_h = std::max(1, (mini_w * kGridH) / kGridW);
-        // const int mini_x = std::max(margin, g_framebuffer_w - margin - mini_w);
-        // const int mini_y = std::max(margin, g_framebuffer_h - margin - mini_h);
-        // glViewport(mini_x, mini_y, mini_w, mini_h);
-        // drawGame(vao, u_mvp_loc, u_color_loc, projection, game);
+        // Mini-map (top-right)
+        const int margin = 12;
+        int mini_w = std::max(1, g_framebuffer_w / 4);
+        int mini_h = std::max(1, (mini_w * kGridH) / kGridW);
+        const int mini_x = std::max(margin, g_framebuffer_w - margin - mini_w);
+        const int mini_y = std::max(margin, g_framebuffer_h - margin - mini_h);
+        glViewport(mini_x, mini_y, mini_w, mini_h);
+        drawGame(vao, u_mvp_loc, u_color_loc, projection, game);
 
         glfwSwapBuffers(window);
     }
