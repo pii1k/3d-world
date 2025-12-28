@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(automotive-simulator LANGUAGES CXX)
+project(3d-world LANGUAGES CXX)
 
 find_package(OpenGL REQUIRED)
 include(FetchContent)
