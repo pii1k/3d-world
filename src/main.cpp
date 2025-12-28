@@ -1,219 +1,384 @@
 #include "glad/gl.h"
+
 #define GLFW_INCLUDE_NONE
-#include "shader.hpp"
 #include <GLFW/glfw3.h>
+
+#include "shader.hpp"
+
+#include <algorithm>
+#include <deque>
 #include <iostream>
+#include <random>
 #include <string>
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <vector>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/vec3.hpp>
 
 namespace
 {
-constexpr unsigned int SCR_WIDTH = 800;
-constexpr unsigned int SCR_HEIGHT = 600;
+constexpr int kGridW = 24;
+constexpr int kGridH = 18;
 
-// stores how much we're seeing of either texture
-float mix_value = 0.2f;
+constexpr int kWindowW = 960;
+constexpr int kWindowH = 720;
+
+constexpr float kTickSeconds = 0.12f;
+
+int g_framebuffer_w = kWindowW;
+int g_framebuffer_h = kWindowH;
+
+struct IVec2
+{
+    int x = 0;
+    int y = 0;
+};
+
+bool operator==(const IVec2 &a, const IVec2 &b)
+{
+    return a.x == b.x && a.y == b.y;
+}
+
+int toIndex(const IVec2 &p)
+{
+    return p.y * kGridW + p.x;
+}
+
+enum class Direction
+{
+    Up,
+    Down,
+    Left,
+    Right,
+};
+
+bool isOpposite(Direction a, Direction b)
+{
+    return (a == Direction::Up && b == Direction::Down) || (a == Direction::Down && b == Direction::Up) ||
+           (a == Direction::Left && b == Direction::Right) || (a == Direction::Right && b == Direction::Left);
+}
+
+IVec2 directionDt(Direction d)
+{
+    switch (d)
+    {
+    case Direction::Up:
+        return {0, 1};
+    case Direction::Down:
+        return {0, -1};
+    case Direction::Left:
+        return {-1, 0};
+    case Direction::Right:
+        return {1, 0};
+    }
+    return {0, 0};
+}
+
+struct SnakeGame
+{
+    std::deque<IVec2> snake_;
+    std::vector<uint8_t> occupied;
+    IVec2 food{};
+
+    Direction direct_{Direction::Right};
+    Direction pending_direct_{Direction::Right};
+
+    bool game_over{false};
+    int score{0};
+
+    std::mt19937 rng{std::random_device{}()};
+
+    SnakeGame()
+    {
+        reset();
+    }
+
+    void reset()
+    {
+        occupied.assign(kGridW * kGridH, 0);
+        snake_.clear();
+
+        const IVec2 start{kGridW / 2, kGridH / 2};
+        snake_.push_front(start);
+        occupied[toIndex(start)] = 1;
+
+        direct_ = Direction::Right;
+        pending_direct_ = Direction::Right;
+        game_over = false;
+        score = 0;
+
+        spawnFood();
+    }
+
+    void spawnFood()
+    {
+        std::uniform_int_distribution<int> dist_x(0, kGridW - 1);
+        std::uniform_int_distribution<int> dist_y(0, kGridH - 1);
+
+        for (int tries = 0; tries < 10'000; ++tries)
+        {
+            IVec2 p{dist_x(rng), dist_y(rng)};
+            if (!occupied[toIndex(p)])
+            {
+                food = p;
+                return;
+            }
+        }
+
+        food = {-1, -1};
+    }
+
+    void setPendingDir(Direction next)
+    {
+        if (isOpposite(direct_, next))
+            return;
+        pending_direct_ = next;
+    }
+
+    void step()
+    {
+        if (game_over)
+            return;
+
+        direct_ = pending_direct_;
+
+        const IVec2 d = directionDt(direct_);
+        const IVec2 head = snake_.front();
+        const IVec2 next{head.x + d.x, head.y + d.y};
+
+        if (next.x < 0 || next.x >= kGridW || next.y < 0 || next.y >= kGridH)
+        {
+            game_over = true;
+            return;
+        }
+
+        const bool will_eat = (next == food);
+
+        // If we won't grow, the tail cell will be freed; allow moving into it.
+        if (!will_eat)
+        {
+            const IVec2 tail = snake_.back();
+            occupied[toIndex(tail)] = 0;
+        }
+
+        if (occupied[toIndex(next)])
+        {
+            game_over = true;
+            return;
+        }
+
+        snake_.push_front(next);
+        occupied[toIndex(next)] = 1;
+
+        if (will_eat)
+        {
+            score += 1;
+            spawnFood();
+        }
+        else
+        {
+            snake_.pop_back();
+        }
+    }
+};
 
 void framebuffer_size_callback(GLFWwindow * /* window */, int width, int height)
 {
+    g_framebuffer_w = width;
+    g_framebuffer_h = height;
     glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow *window)
+void key_callback(GLFWwindow *window, int key, int /* scancode */, int action, int /* mods */)
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+    if (action != GLFW_PRESS)
+        return;
 
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    auto *game = static_cast<SnakeGame *>(glfwGetWindowUserPointer(window));
+    if (!game)
+        return;
+
+    if (key == GLFW_KEY_ESCAPE)
     {
-        mix_value += 0.01f;
-        if (mix_value >= 1.0f)
-            mix_value = 1.0f;
+        glfwSetWindowShouldClose(window, true);
+        return;
     }
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    if (key == GLFW_KEY_R)
     {
-        mix_value -= 0.01f;
-        if (mix_value <= 0.0f)
-            mix_value = 0.0f;
+        game->reset();
+        return;
+    }
+
+    if (key == GLFW_KEY_UP || key == GLFW_KEY_W)
+        game->setPendingDir(Direction::Up);
+    else if (key == GLFW_KEY_DOWN || key == GLFW_KEY_S)
+        game->setPendingDir(Direction::Down);
+    else if (key == GLFW_KEY_LEFT || key == GLFW_KEY_A)
+        game->setPendingDir(Direction::Left);
+    else if (key == GLFW_KEY_RIGHT || key == GLFW_KEY_D)
+        game->setPendingDir(Direction::Right);
+}
+
+void drawCell(GLuint vao,
+              GLint u_mvp_loc,
+              GLint u_color_loc,
+              const glm::mat4 &projection,
+              const IVec2 &cell,
+              const glm::vec3 &color)
+{
+    const glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(static_cast<float>(cell.x), static_cast<float>(cell.y), 0.0f));
+    const glm::mat4 mvp = projection * model;
+    glUniformMatrix4fv(u_mvp_loc, 1, GL_FALSE, glm::value_ptr(mvp));
+    glUniform3f(u_color_loc, color.r, color.g, color.b);
+    glBindVertexArray(vao);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+}
+
+void drawGame(GLuint vao,
+              GLint u_mvp_loc,
+              GLint u_color_loc,
+              const glm::mat4 &projection,
+              const SnakeGame &game)
+{
+    if (game.food.x >= 0)
+        drawCell(vao, u_mvp_loc, u_color_loc, projection, game.food, {0.95f, 0.25f, 0.25f});
+
+    bool first = true;
+    for (const auto &cell : game.snake_)
+    {
+        if (first)
+        {
+            drawCell(vao, u_mvp_loc, u_color_loc, projection, cell, {0.2f, 0.95f, 0.4f});
+            first = false;
+        }
+        else
+        {
+            drawCell(vao, u_mvp_loc, u_color_loc, projection, cell, {0.15f, 0.65f, 0.4f});
+        }
     }
 }
 } // namespace
 
 int main()
 {
-    glfwInit();
+    if (!glfwInit())
+    {
+        std::cerr << "Failed to initialize GLFW\n";
+        return -1;
+    }
+
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-    // glfw window creation
-    GLFWwindow *window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
-    if (window == NULL)
+    GLFWwindow *window = glfwCreateWindow(kWindowW, kWindowH, "Snake (GLFW/OpenGL)", nullptr, nullptr);
+    if (!window)
     {
-        std::cout << "Failed to create GLFW window" << std::endl;
+        std::cerr << "Failed to create GLFW window\n";
         glfwTerminate();
         return -1;
     }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    // glad: load all OpenGL function pointers
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwGetFramebufferSize(window, &g_framebuffer_w, &g_framebuffer_h);
+
     if (!gladLoadGL(glfwGetProcAddress))
     {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        std::cerr << "Failed to initialize GLAD\n";
+        glfwTerminate();
         return -1;
     }
 
+    glDisable(GL_DEPTH_TEST);
+
+    SnakeGame game{};
+    glfwSetWindowUserPointer(window, &game);
+    glfwSetKeyCallback(window, key_callback);
+
     const std::string shader_dir = std::string(ASSETS_DIR) + "/shader/";
-    Shader ourShader(shader_dir + "shader.vs", shader_dir + "shader.fs");
-    float vertices[] = {
-        // positions          // colors           // texture coords
-        0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // top right
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f   // top left
+    Shader shader(shader_dir + "snake.vs", shader_dir + "snake.fs");
+    shader.use();
+
+    const GLint u_mvp_loc = glGetUniformLocation(shader.getId(), "uMVP");
+    const GLint u_color_loc = glGetUniformLocation(shader.getId(), "uColor");
+
+    const float quad_vertices[] = {
+        // unit quad in [0,1]x[0,1]
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        1.0f,
+        1.0f,
+        0.0f,
+        1.0f,
     };
+    const unsigned int quad_indices[] = {0, 1, 2, 0, 2, 3};
 
-    unsigned int indices[] = {
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
-    };
+    GLuint vao = 0;
+    GLuint vbo = 0;
+    GLuint ebo = 0;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
 
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quad_indices), quad_indices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+    glBindVertexArray(0);
 
-    // color attritbue
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    const glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(kGridW), 0.0f, static_cast<float>(kGridH));
 
-    // texture attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    // texture 1
-    unsigned int texture1;
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    // set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // load image, create texture and generate minimaps
-    stbi_set_flip_vertically_on_load(true);
-    int width = 0;
-    int height = 0;
-    int nrChannels = 0;
-    const std::string container_path_str = std::string(ASSETS_DIR) + "/textures/container.jpeg";
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    unsigned char *loaded_pixels = stbi_load(container_path_str.c_str(), &width, &height, &nrChannels, 0);
-    if (!loaded_pixels)
-    {
-        std::cout << "Failed to load texture: " << container_path_str << std::endl;
-    }
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, loaded_pixels);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(loaded_pixels);
-
-    // texture 2
-    unsigned int texture2;
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    const std::string container_path_str2 = std::string(ASSETS_DIR) + "/textures/container2.jpeg";
-    loaded_pixels = stbi_load(container_path_str2.c_str(), &width, &height, &nrChannels, 0);
-    if (loaded_pixels)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, loaded_pixels);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture: " << container_path_str2 << std::endl;
-    }
-    stbi_image_free(loaded_pixels);
-
-    // tell OpenGL for each sampler to which texture unit it belongs to (only has to be once)
-    ourShader.use();
-    ourShader.setInt("texture1", 0);
-    ourShader.setInt("texture2", 1);
-    ourShader.setInt("activeTexture", 0);
+    float last_time = static_cast<float>(glfwGetTime());
+    float accumulator = 0.0f;
 
     while (!glfwWindowShouldClose(window))
     {
-        processInput(window);
+        const float now = static_cast<float>(glfwGetTime());
+        float dt = now - last_time;
+        last_time = now;
+        if (dt > 0.25f)
+            dt = 0.25f;
 
-        // render
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glfwPollEvents();
+
+        accumulator += dt;
+        while (accumulator >= kTickSeconds)
+        {
+            game.step();
+            accumulator -= kTickSeconds;
+        }
+
+        glClearColor(0.06f, 0.07f, 0.09f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // bind textures on corresponding texture units
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
+        shader.use();
 
-        // create transformations
-        glm::mat4 transform = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+        // Main view (full window)
+        glViewport(0, 0, g_framebuffer_w, g_framebuffer_h);
+        drawGame(vao, u_mvp_loc, u_color_loc, projection, game);
 
-        // first container
-        ourShader.setInt("activeTexture", 0);
-        transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
-        transform = glm::rotate(transform, static_cast<float>(glfwGetTime()), glm::vec3(0.0f, 0.0f, 1.0f));
-        // get matrix's uniform location and set matrix
-        unsigned int transformLoc = glGetUniformLocation(ourShader.getId(), "transform");
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
-        // with the uniform matrix set, draw the first container
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        // // Mini-map (top-right)
+        // const int margin = 12;
+        // int mini_w = std::max(1, g_framebuffer_w / 4);
+        // int mini_h = std::max(1, (mini_w * kGridH) / kGridW);
+        // const int mini_x = std::max(margin, g_framebuffer_w - margin - mini_w);
+        // const int mini_y = std::max(margin, g_framebuffer_h - margin - mini_h);
+        // glViewport(mini_x, mini_y, mini_w, mini_h);
+        // drawGame(vao, u_mvp_loc, u_color_loc, projection, game);
 
-        // second transformation
-        ourShader.use();
-        transform = glm::mat4(1.0f); // reset
-        transform = glm::translate(transform, glm::vec3(-0.5f, 0.5f, 0.0f));
-        float scaleAmount = static_cast<float>(std::sin(glfwGetTime()));
-        transform = glm::scale(transform, glm::vec3(scaleAmount, scaleAmount, scaleAmount));
-        ourShader.setInt("activeTexture", 1);
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, &transform[0][0]);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-        // glfw: swap buffers and poll IO events
         glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    glDeleteTextures(1, &texture1);
-    glDeleteTextures(1, &texture2);
+    glDeleteBuffers(1, &ebo);
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
 
     glfwTerminate();
     return 0;
