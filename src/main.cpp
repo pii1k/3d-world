@@ -1,18 +1,17 @@
+#include "colors.hpp"
+#include "controller.hpp"
 #include "glad/gl.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/trigonometric.hpp"
+#include "shader.hpp"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-
-#include "shader.hpp"
-
 #include <algorithm>
-#include <iostream>
-#include <string>
-
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <iostream>
+#include <string>
 
 namespace
 {
@@ -91,114 +90,9 @@ GLFWwindow *init()
     return window;
 }
 
-struct CameraConfig
-{
-    glm::vec3 position{};
-    glm::vec3 target{};
-    glm::vec3 up{};
-    float fov_deg = 45.0f;
-    float near_plane = 0.1f;
-    float far_plane = 200.0f;
-    bool use_ortho = false;
-    float ortho_size = 10.0f;
-};
-
-class Camera
-{
-public:
-    explicit Camera(const CameraConfig &cfg)
-        : position_(cfg.position),
-          target_(cfg.target),
-          up_(cfg.up),
-          fov_deg_(cfg.fov_deg),
-          near_plane_(cfg.near_plane),
-          far_plane_(cfg.far_plane),
-          use_ortho_(cfg.use_ortho),
-          ortho_size_(cfg.ortho_size) {}
-
-    glm::mat4 view() const { return glm::lookAt(position_, target_, up_); }
-    glm::mat4 proj(int w, int h) const
-    {
-        const float aspect_ratio = static_cast<float>(w) / static_cast<float>(std::max(1, h));
-        return use_ortho_ ? glm::ortho(-ortho_size_ * aspect_ratio, ortho_size_ * aspect_ratio,
-                                       -ortho_size_, ortho_size_, near_plane_, far_plane_)
-                          : glm::perspective(glm::radians(fov_deg_), aspect_ratio, near_plane_, far_plane_);
-    }
-
-    void setPosition(const glm::vec3 &pos) { position_ = pos; }
-    void setTarget(const glm::vec3 &target) { target_ = target; }
-    void setUp(const glm::vec3 &up) { up_ = up; }
-    void setPerspective(float fov_deg, float near_plane, float far_plane)
-    {
-        use_ortho_ = false;
-        fov_deg_ = fov_deg;
-        near_plane_ = near_plane;
-        far_plane_ = far_plane;
-    }
-    void setOrtho(float size, float near_plane, float far_plane)
-    {
-        use_ortho_ = true;
-        ortho_size_ = size;
-        near_plane_ = near_plane;
-        far_plane_ = far_plane;
-    }
-
-private:
-    glm::vec3 position_{};
-    glm::vec3 target_{};
-    glm::vec3 up_{};
-    float fov_deg_ = 0.f;
-    float near_plane_, far_plane_ = 0.f;
-    bool use_ortho_ = false;
-    float ortho_size_ = 0.f;
-};
-
-struct OrbitController
-{
-public:
-    explicit OrbitController(Camera camera)
-        : camera_(std::move(camera)) {}
-
-    Camera &getCamera() { return camera_; }
-    const Camera &getCamera() const { return camera_; }
-
-    void update()
-    {
-        const float yaw = glm::radians(yaw_deg_);
-        const float pitch = glm::radians(pitch_deg_);
-
-        const float cosin_pitch = glm::cos(pitch);
-        const glm::vec3 direction{cosin_pitch * glm::sin(yaw),
-                                  glm::sin(pitch),
-                                  cosin_pitch * glm::cos(yaw)};
-
-        camera_.setTarget(target_);
-        camera_.setPosition(target_ + direction * distance_);
-        camera_.setUp(glm::vec3(0.0f, 1.0f, 0.0f));
-    }
-
-    void onScroll(double yoffset)
-    {
-        distance_ = std::clamp(distance_ - static_cast<float>(yoffset) * zoom_speed_,
-                               min_distance_,
-                               max_distance_);
-        this->update();
-    }
-
-private:
-    Camera camera_;
-    glm::vec3 target_{0.0f, 0.0f, 0.0f};
-    float yaw_deg_ = 0.0f;
-    float pitch_deg_ = 35.0f;
-    float distance_ = 50.0f;
-    float zoom_speed_ = 1.0f;
-    float min_distance_ = 2.0f;
-    float max_distance_ = 200.0f;
-};
-
 void scroll_callback(GLFWwindow *window, double /* xoffset */, double yoffset)
 {
-    auto *controller = static_cast<OrbitController *>(glfwGetWindowUserPointer(window));
+    auto *controller = static_cast<contoller::OrbitCamera *>(glfwGetWindowUserPointer(window));
     if (!controller)
         return;
 
@@ -219,7 +113,7 @@ int main()
     cam_cfg.near_plane = 0.1f;
     cam_cfg.far_plane = 200.0f;
 
-    OrbitController controller{Camera(cam_cfg)};
+    contoller::OrbitCamera controller{Camera(cam_cfg)};
     controller.update(); // initialize
     glfwSetWindowUserPointer(window, &controller);
     glfwSetScrollCallback(window, scroll_callback);
@@ -232,7 +126,7 @@ int main()
     const GLint u_color_loc = glGetUniformLocation(shader.getId(), "uColor");
 
     glEnable(GL_DEPTH_TEST);
-    glUniform3f(u_color_loc, 0.75f, 0.75f, 0.85f);
+    glUniform3f(u_color_loc, colors::kGrassGreenAlt.r, colors::kGrassGreenAlt.g, colors::kGrassGreenAlt.b);
 
     // set plane VAO, VBO
     GLuint plane_vao, plane_vbo = 0;
