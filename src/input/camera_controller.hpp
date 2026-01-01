@@ -1,9 +1,7 @@
 #pragma once
 
-#include "camera.hpp"
+#include "engine/camera.hpp"
 
-namespace controller
-{
 class OrbitCamera
 {
 public:
@@ -26,9 +24,3 @@ private:
     float min_distance_ = 2.0f;
     float max_distance_ = 200.0f;
 };
-
-class PlacementController
-{
-public:
-};
-} // namespace controller

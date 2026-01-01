@@ -51,7 +51,7 @@ set(glm_SOURCE_SUBDIR cmake)
 FetchContent_MakeAvailable(glm)
 
 # Simulator exe
-file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS
+file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 

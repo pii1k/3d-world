@@ -1,4 +1,6 @@
-#include "camera.hpp"
+#include "engine/camera.hpp"
+
+#include <algorithm>
 
 Camera::Camera(const CameraConfig &cfg)
     : position_(cfg.position),

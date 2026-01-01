@@ -1,7 +1,5 @@
-#include "controller.hpp"
+#include "input/camera_controller.hpp"
 
-namespace controller
-{
 void OrbitCamera::update()
 {
     const float yaw = glm::radians(yaw_deg_);
@@ -24,4 +22,3 @@ void OrbitCamera::onScroll(double yoffset)
                            max_distance_);
     this->update();
 }
-} // namespace controller
