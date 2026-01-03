@@ -14,9 +14,11 @@ target_link_libraries(graphics
 PUBLIC
     OpenGL::GL
     glfw
+    glm::glm
 )
 
 target_compile_definitions(graphics
 PUBLIC
     SHADER_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets"
+    GL_SILENCE_DEPRECATION
 )

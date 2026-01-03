@@ -1,13 +1,12 @@
 #pragma once
 
-#ifndef GL_GLEXT_PROTOTYPES
-#define GL_GLEXT_PROTOTYPES
-#endif
-
+#include "gl_includes.hpp"
 #include "mesh.hpp"
 #include "render_data.hpp"
-#include <GL/gl.h>
-#include <GL/glext.h>
+
+#ifndef GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_NONE
+#endif
 #include <GLFW/glfw3.h>
 #include <glm/mat4x4.hpp>
 #include <memory>

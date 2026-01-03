@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GL/gl.h>
+#include "gl_includes.hpp"
 #include <fstream>
 #include <sstream>
 #include <stdexcept>

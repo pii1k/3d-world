@@ -5,7 +5,10 @@
 #include <memory>
 #include <stdexcept>
 
-#include "GLFW/glfw3.h"
+#ifndef GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_NONE
+#endif
+#include <GLFW/glfw3.h>
 #include "component.hpp"
 #include "engine.hpp"
 #include "orbit_camera_system.hpp"

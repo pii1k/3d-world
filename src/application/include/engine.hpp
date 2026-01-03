@@ -3,12 +3,15 @@
 #include <glm/glm.hpp>
 #include <memory>
 
-#include "GLFW/glfw3.h"
+#ifndef GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_NONE
+#endif
 #include "camera.hpp"
 #include "orbit_camera_system.hpp"
 #include "render_system.hpp"
 #include "renderer.hpp"
 #include "world.hpp"
+#include <GLFW/glfw3.h>
 
 struct Runtime
 {
