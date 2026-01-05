@@ -8,12 +8,12 @@
 #ifndef GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_NONE
 #endif
-#include <GLFW/glfw3.h>
+#include "camera_system.hpp"
 #include "component.hpp"
 #include "engine.hpp"
-#include "orbit_camera_system.hpp"
 #include "prefabs.hpp"
 #include "render_data.hpp"
+#include <GLFW/glfw3.h>
 
 namespace
 {
@@ -37,6 +37,13 @@ void mouse_callback(GLFWwindow *window_ptr, double pos_x, double pos_y)
     {
         engine_ptr->handleMouseMove(pos_x, pos_y);
     }
+}
+
+void mouse_button_callback(GLFWwindow *window_ptr, int button, int action, int /*mods*/)
+{
+    Engine *engine_ptr = static_cast<Engine *>(glfwGetWindowUserPointer(window_ptr));
+    if (engine_ptr)
+        engine_ptr->onMouseButton(button, action);
 }
 
 void scroll_callback(GLFWwindow *window_ptr, double offset_x, double offset_y)
@@ -116,6 +123,10 @@ void Engine::handleMouseScroll(double /* offset_x */, double offset_y)
     runtime_.scroll_y += static_cast<float>(offset_y);
 }
 
+void Engine::onMouseButton(int /*button*/, int /*action*/)
+{
+}
+
 void Engine::init()
 {
     glfwSetErrorCallback(error_callback);
@@ -139,8 +150,8 @@ void Engine::init()
     camera_config.aspect_ratio = static_cast<float>(kWidth) / static_cast<float>(kHeight);
     render_ctx_.camera = std::make_unique<Camera>(glm::vec3{0.0f, 2.0f, 6.0f}, camera_config);
 
-    // systems init
-    render_ctx_.camera_system = std::make_unique<OrbitCameraSystem>();
+    // init systems
+    render_ctx_.camera_system = std::make_unique<QuarterViewCameraSystem>();
 }
 
 void Engine::setupCallback()
@@ -149,15 +160,21 @@ void Engine::setupCallback()
     glfwSetFramebufferSizeCallback(render_ctx_.window, frambuffer_size_callback);
     glfwSetCursorPosCallback(render_ctx_.window, mouse_callback);
     glfwSetScrollCallback(render_ctx_.window, scroll_callback);
-    glfwSetInputMode(render_ctx_.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(render_ctx_.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 void Engine::loadAssets()
 {
-    // 월드의 다른 객체들(나무, 돌 등)을 생성합니다. 지금은 테스트용 큐브 하나만 추가.
-    entity_id prop = scene_.world->newEntity();
-    scene_.world->addComponent<TransformComponent>(prop, {{5.0f, 1.5f, -5.0f}, {}, {1.0f, 3.0f, 1.0f}});
-    scene_.world->addComponent<RenderableComponent>(prop, RenderableComponent{static_cast<int>(MeshId::Cube), {0.3f, 0.6f, 1.0f}, false});
+    auto spawn_cube = [&](const glm::vec3 &position, const glm::vec3 &color, const glm::vec3 &scale)
+    {
+        entity_id cube = scene_.world->newEntity();
+        scene_.world->addComponent<TransformComponent>(cube, {position, {}, scale});
+        scene_.world->addComponent<RenderableComponent>(cube, RenderableComponent{static_cast<int>(MeshId::Cube), color, false});
+        return cube;
+    };
+
+    spawn_cube({-4.0f, 1.5f, -5.0f}, {0.7f, 0.3f, 0.3f}, {1.0f, 3.0f, 1.0f});
+    spawn_cube({4.0f, 1.0f, -3.0f}, {0.3f, 0.6f, 1.0f}, {1.5f, 2.0f, 1.5f});
 }
 
 void Engine::proccessInput(float delta_time)

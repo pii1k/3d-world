@@ -63,7 +63,10 @@ bool Renderer::init(int width, int height, const std::string &title)
     glfwSwapInterval(1);
     std::clog << "[renderer] window created: " << width << "x" << height << " (" << title << ")" << std::endl;
 
-    glViewport(0, 0, width, height);
+    int framebuffer_width = width;
+    int framebuffer_height = height;
+    glfwGetFramebufferSize(window_ptr_, &framebuffer_width, &framebuffer_height);
+    glViewport(0, 0, framebuffer_width, framebuffer_height);
     glEnable(GL_DEPTH_TEST);
 
     std::clog << "[renderer] GL version: " << reinterpret_cast<const char *>(glGetString(GL_VERSION)) << std::endl;
