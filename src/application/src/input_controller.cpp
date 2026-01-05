@@ -1,19 +1,31 @@
 #include "input_controller.hpp"
-
+#include "camera.hpp"
+#include "camera_system.hpp"
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-
 #include <algorithm>
 #include <cmath>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <limits>
 
-InputController::InputController(glm::vec3 &cube_pos,
-                                 bool &show_ui,
-                                 float &move_speed)
-    : cube_pos_(cube_pos),
-      show_ui_(show_ui),
-      move_speed_(move_speed) {}
+void InputController::onMouseMove(double xpos, double ypos)
+{
+    if (first_mouse_)
+    {
+        last_x_ = xpos;
+        last_y_ = ypos;
+        first_mouse_ = false;
+        return;
+    }
+
+    const double d_x = xpos - last_x_;
+    const double d_y = last_y_ - ypos;
+    last_x_ = xpos;
+    last_y_ = ypos;
+
+    mouse_dx_ += static_cast<float>(d_x);
+    mouse_dy_ += static_cast<float>(d_y);
+}
 
 void InputController::onKey(int key, int action)
 {
@@ -43,26 +55,47 @@ void InputController::onKey(int key, int action)
 
 void InputController::onScroll(double yoffset)
 {
-    camera_controller_.onScroll(yoffset);
+    scroll_y_ += static_cast<float>(yoffset);
 }
 
-void InputController::update(float dt_s)
+void InputController::cameraUpdate(float delta_time, CameraSystem &camera_system, Camera &camera)
 {
-    glm::vec3 move_dir{0.0f};
-    if (input_.w)
-        move_dir.z -= 1.0f;
-    if (input_.s)
-        move_dir.z += 1.0f;
-    if (input_.a)
-        move_dir.x -= 1.0f;
-    if (input_.d)
-        move_dir.x += 1.0f;
+    camera_system.update(mouse_dx_,
+                         mouse_dy_,
+                         scroll_y_,
+                         delta_time,
+                         camera);
+    mouse_dx_ = 0.0f;
+    mouse_dy_ = 0.0f;
+    scroll_y_ = 0.0f;
+}
 
-    if (glm::dot(move_dir, move_dir) > 0.0f)
-    {
-        move_dir = glm::normalize(move_dir);
-        cube_pos_ += move_dir * (move_speed_ * dt_s);
-    }
+bool InputController::onMouseClick(double cursor_x,
+                                   double cursor_y,
+                                   int viewport_w,
+                                   int viewport_h,
+                                   const glm::mat4 &view,
+                                   const glm::mat4 &proj,
+                                   const glm::vec3 &target_position,
+                                   const glm::vec3 &half_extents)
+{
+    const float x_ndc = static_cast<float>((2.0 * cursor_x) / std::max(1, viewport_w) - 1.0);
+    const float y_ndc = static_cast<float>(1.0 - (2.0 * cursor_y) / std::max(1, viewport_h));
+
+    const glm::mat4 inv_vp = glm::inverse(proj * view);
+    const glm::vec4 near_clip{x_ndc, y_ndc, -1.0f, 1.0f};
+    const glm::vec4 far_clip{x_ndc, y_ndc, 1.0f, 1.0f};
+    glm::vec4 near_world = inv_vp * near_clip;
+    glm::vec4 far_world = inv_vp * far_clip;
+    near_world /= std::max(1e-6f, near_world.w);
+    far_world /= std::max(1e-6f, far_world.w);
+
+    const glm::vec3 ray_origin{near_world};
+    const glm::vec3 ray_dir = glm::normalize(glm::vec3(far_world - near_world));
+
+    const glm::vec3 aabb_min = target_position - half_extents;
+    const glm::vec3 aabb_max = target_position + half_extents;
+    return rayIntersectsAABB(ray_origin, ray_dir, aabb_min, aabb_max);
 }
 
 bool InputController::rayIntersectsAABB(const glm::vec3 &ray_origin,
@@ -100,32 +133,4 @@ bool InputController::rayIntersectsAABB(const glm::vec3 &ray_origin,
     }
 
     return tmax >= 0.0f;
-}
-
-void InputController::onMouseClick(double cursor_x,
-                                   double cursor_y,
-                                   int viewport_w,
-                                   int viewport_h,
-                                   const glm::mat4 &view,
-                                   const glm::mat4 &proj)
-{
-    const float x_ndc = static_cast<float>((2.0 * cursor_x) / std::max(1, viewport_w) - 1.0);
-    const float y_ndc = static_cast<float>(1.0 - (2.0 * cursor_y) / std::max(1, viewport_h));
-
-    const glm::mat4 inv_vp = glm::inverse(proj * view);
-    const glm::vec4 near_clip{x_ndc, y_ndc, -1.0f, 1.0f};
-    const glm::vec4 far_clip{x_ndc, y_ndc, 1.0f, 1.0f};
-    glm::vec4 near_world = inv_vp * near_clip;
-    glm::vec4 far_world = inv_vp * far_clip;
-    near_world /= std::max(1e-6f, near_world.w);
-    far_world /= std::max(1e-6f, far_world.w);
-
-    const glm::vec3 ray_origin{near_world};
-    const glm::vec3 ray_dir = glm::normalize(glm::vec3(far_world - near_world));
-
-    constexpr glm::vec3 half_extents{0.5f, 0.5f, 0.5f};
-    const glm::vec3 aabb_min = cube_pos_ - half_extents;
-    const glm::vec3 aabb_max = cube_pos_ + half_extents;
-    if (rayIntersectsAABB(ray_origin, ray_dir, aabb_min, aabb_max))
-        show_ui_ = !show_ui_;
 }

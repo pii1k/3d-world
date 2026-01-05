@@ -11,9 +11,10 @@ class CameraSystem
 public:
     virtual ~CameraSystem() = default;
     virtual void setPivot(const glm::vec3 &pivot) {}
-    virtual void update(float &mouse_dx,
-                        float &mouse_dy,
-                        float &scroll_y,
+    virtual void update(float mouse_dx,
+                        float mouse_dy,
+                        float scroll_y,
+                        float delta_time,
                         Camera &camera) = 0;
 };
 
@@ -33,12 +34,12 @@ struct QuarterViewCameraState
 class QuarterViewCameraSystem : public CameraSystem
 {
 public:
-    void setPivot(const glm::vec3 &pivot) { state_.pivot = pivot; }
-
-    void update(float & /* mouse_dx */,
-                float & /* mouse_dy */,
-                float &scroll_y,
-                Camera &camera)
+    void setPivot(const glm::vec3 &pivot) override { state_.pivot = pivot; }
+    void update(float /* mouse_dx */,
+                float /* mouse_dy */,
+                float scroll_y,
+                float /* delta_time */,
+                Camera &camera) override
     {
         state_.distance -= scroll_y * state_.zoom_speed;
         state_.distance = std::clamp(state_.distance, state_.min_distance, state_.max_distance);
@@ -79,9 +80,10 @@ struct OrbitCameraState
 class OrbitCameraSystem : public CameraSystem
 {
 public:
-    void update(float &mouse_dx,
-                float &mouse_dy,
-                float &scroll_y,
+    void update(float mouse_dx,
+                float mouse_dy,
+                float scroll_y,
+                float delta_time,
                 Camera &camera)
     {
         state_.yaw_deg += mouse_dx * state_.sensitivity_deg;

@@ -1,5 +1,6 @@
 add_library(app STATIC
     src/engine.cpp
+    src/input_controller.cpp
     src/prefabs.cpp
 )
 
