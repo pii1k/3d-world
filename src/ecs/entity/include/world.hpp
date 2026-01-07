@@ -72,7 +72,7 @@ public:
     template <typename T, typename Func>
     void forEachComponent(Func &&func)
     {
-        auto *array = getArray<std::decay<T>>();
+        auto *array = getArray<std::decay_t<T>>();
         if (!array)
             return;
 

@@ -53,3 +53,23 @@ struct PhysicsComponent
     float friction = 0.95f;
     bool grounded = false;
 };
+
+struct SelectableComponent
+{
+};
+
+struct SelectedComponent
+{
+};
+
+struct PickBoundsComponent
+{
+    glm::vec3 half_extents{0.5f};
+    glm::vec3 center_offset{0.0f};
+};
+
+struct CommNodeComponent
+{
+    float range = 8.0f;
+    bool enabled = true;
+};

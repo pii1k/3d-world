@@ -117,7 +117,7 @@ void Engine::handleMouseButton(int button, int action)
 {
     if (action != GLFW_PRESS || button != GLFW_MOUSE_BUTTON_LEFT)
         return;
-    if (!render_ctx_.view.input_controller || !render_ctx_.view.camera || !render_ctx_.view.window)
+    if (!render_ctx_.view.input_controller || !render_ctx_.view.camera || !render_ctx_.view.window || !scene_.world)
         return;
 
     double cursor_x = 0.0;
@@ -131,22 +131,46 @@ void Engine::handleMouseButton(int button, int action)
     const glm::mat4 view = render_ctx_.view.camera->getViewMatrix();
     const glm::mat4 proj = render_ctx_.view.camera->getProjectionMatrix();
 
-    for (entity_id entity : scene_.selectable_entities)
+    if (scene_.selected_entity)
     {
-        auto transform_opt = scene_.world->getComponent<TransformComponent>(entity);
-        if (!transform_opt)
-            continue;
-        const TransformComponent &transform = transform_opt->get();
-        const glm::vec3 half_extents = transform.scale * 0.5f;
-        if (render_ctx_.view.input_controller->onMouseClick(cursor_x, cursor_y,
-                                                            window_width, window_height,
-                                                            view, proj, transform.position,
-                                                            half_extents))
-        {
-            std::cerr << "[input] cube hit: entity " << entity << std::endl;
-            break;
-        }
+        scene_.world->removeComponent<SelectedComponent>(*scene_.selected_entity);
+        scene_.selected_entity.reset();
     }
+
+    bool hit = false;
+    scene_.world->forEachComponent<SelectableComponent>(
+        [&](entity_id entity, SelectableComponent &)
+        {
+            if (hit)
+                return;
+
+            auto transform_opt = scene_.world->getComponent<TransformComponent>(entity);
+            if (!transform_opt)
+                return;
+
+            const TransformComponent &transform = transform_opt->get();
+            glm::vec3 half_extents = transform.scale * 0.5f;
+            glm::vec3 center_offset = glm::vec3(0.0f);
+
+            if (auto pick_bounds_opt = scene_.world->getComponent<PickBoundsComponent>(entity))
+            {
+                const PickBoundsComponent &pb = pick_bounds_opt->get();
+                half_extents = pb.half_extents;
+                center_offset = pb.center_offset;
+            }
+
+            const glm::vec3 bounds_center = transform.position + center_offset;
+            if (render_ctx_.view.input_controller->onMouseClick(cursor_x, cursor_y,
+                                                                window_width, window_height,
+                                                                view, proj, bounds_center,
+                                                                half_extents))
+            {
+                scene_.world->addComponent<SelectedComponent>(entity, SelectedComponent{});
+                scene_.selected_entity = entity;
+                std::cerr << "[input] selected entity " << entity << std::endl;
+                hit = true;
+            }
+        });
 }
 
 void Engine::init()
@@ -187,18 +211,49 @@ void Engine::setupCallback()
 
 void Engine::loadAssets()
 {
-    auto spawn_cube = [&](const glm::vec3 &position,
-                          const glm::vec3 &color,
-                          const glm::vec3 &scale) -> entity_id
+    // TODO(jyan): MVP는 일단 임시로 이렇게.. 나중에 수정 필요
+    auto spawn_vehicle = [&](const glm::vec3 &position,
+                             const glm::vec3 &color,
+                             const glm::vec3 &scale) -> entity_id
+    {
+        entity_id body = scene_.world->newEntity();
+        scene_.world->addComponent<TransformComponent>(body, TransformComponent{position, {}, scale});
+        scene_.world->addComponent<RenderableComponent>(body, RenderableComponent{static_cast<int>(MeshId::Cube), color, false});
+        scene_.world->addComponent<SelectableComponent>(body, SelectableComponent{});
+        const glm::vec3 body_half_extents = scale * 0.5f;
+        scene_.world->addComponent<PickBoundsComponent>(body, PickBoundsComponent{body_half_extents, {}});
+
+        // roof
+        const glm::vec3 roof_scale = glm::vec3(scale.x * 0.6f, scale.y * 0.5f, scale.z * 0.6f);
+        const glm::vec3 roof_pos = position + glm::vec3(0.0f, (scale.y + roof_scale.y) * 0.5f, 0.0f);
+        entity_id roof = scene_.world->newEntity();
+        scene_.world->addComponent<TransformComponent>(roof, TransformComponent{roof_pos, {}, roof_scale});
+        scene_.world->addComponent<RenderableComponent>(roof, RenderableComponent{static_cast<int>(MeshId::Cube), color, false});
+
+        return body;
+    };
+
+    auto spawn_traffic_light = [&](const glm::vec3 &position,
+                                   const glm::vec3 &color,
+                                   const glm::vec3 &scale) -> entity_id
     {
         entity_id cube = scene_.world->newEntity();
-        scene_.world->addComponent<TransformComponent>(cube, {position, {}, scale});
+        const glm::vec3 grounded_pos = position + glm::vec3(0.0f, scale.y * 0.5f, 0.0f);
+        scene_.world->addComponent<TransformComponent>(cube, TransformComponent{grounded_pos, {}, scale});
         scene_.world->addComponent<RenderableComponent>(cube, RenderableComponent{static_cast<int>(MeshId::Cube), color, false});
+        scene_.world->addComponent<SelectableComponent>(cube, SelectableComponent{});
+        const glm::vec3 half_extents = scale * 0.5f;
+        scene_.world->addComponent<PickBoundsComponent>(cube, PickBoundsComponent{half_extents, {}});
         return cube;
     };
 
-    scene_.selectable_entities.push_back(spawn_cube({-4.0f, 1.5f, -5.0f}, {0.7f, 0.3f, 0.3f}, {1.0f, 3.0f, 1.0f}));
-    scene_.selectable_entities.push_back(spawn_cube({4.0f, 1.0f, -3.0f}, {0.3f, 0.6f, 1.0f}, {1.5f, 2.0f, 1.5f}));
+    spawn_vehicle({-4.0f, 1.0f, -5.0f},
+                  {0.7f, 0.3f, 0.3f},
+                  {1.6f, 1.0f, 3.2f});
+
+    spawn_traffic_light({4.0f, 0.0f, -3.0f},
+                        {0.3f, 0.6f, 1.0f},
+                        {0.35f, 3.0f, 0.35f});
 }
 
 void Engine::proccessInput(float delta_time)

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #ifndef GLFW_INCLUDE_NONE
@@ -26,7 +27,7 @@ struct Scene
 {
     std::unique_ptr<World> world;
     entity_id ground_id{};
-    std::vector<entity_id> selectable_entities;
+    std::optional<entity_id> selected_entity{};
 };
 
 struct ViewContext
