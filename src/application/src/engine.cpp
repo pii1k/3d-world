@@ -40,11 +40,25 @@ void mouse_callback(GLFWwindow *window_ptr, double pos_x, double pos_y)
     }
 }
 
-void mouse_button_callback(GLFWwindow *window_ptr, int button, int action, int /*mods*/)
+void mouse_button_callback(GLFWwindow *window_ptr, int button, int action, int mods)
 {
     Engine *engine_ptr = static_cast<Engine *>(glfwGetWindowUserPointer(window_ptr));
     if (engine_ptr)
-        engine_ptr->handleMouseButton(button, action);
+        engine_ptr->handleMouseButton(button, action, mods);
+}
+
+void key_callback(GLFWwindow *window_ptr, int key, int scancode, int action, int mods)
+{
+    Engine *engine_ptr = static_cast<Engine *>(glfwGetWindowUserPointer(window_ptr));
+    if (engine_ptr)
+        engine_ptr->handleKey(key, scancode, action, mods);
+}
+
+void char_callback(GLFWwindow *window_ptr, unsigned int codepoint)
+{
+    Engine *engine_ptr = static_cast<Engine *>(glfwGetWindowUserPointer(window_ptr));
+    if (engine_ptr)
+        engine_ptr->handleChar(codepoint);
 }
 
 void scroll_callback(GLFWwindow *window_ptr, double offset_x, double offset_y)
@@ -99,23 +113,33 @@ void Engine::handleWindowResize(int width, int height)
 
 void Engine::handleMouseMove(double xpos, double ypos)
 {
+    ui_.onCursorPos(xpos, ypos);
+    if (ui_.wantsCaptureMouse())
+        return;
     if (render_ctx_.view.input_controller)
     {
         render_ctx_.view.input_controller->onMouseMove(xpos, ypos);
     }
 }
 
-void Engine::handleMouseScroll(double /* offset_x */, double offset_y)
+void Engine::handleMouseScroll(double offset_x, double offset_y)
 {
+    ui_.onScroll(offset_x, offset_y);
+    if (ui_.wantsCaptureMouse())
+        return;
     if (render_ctx_.view.input_controller)
     {
         render_ctx_.view.input_controller->onScroll(offset_y);
     }
 }
 
-void Engine::handleMouseButton(int button, int action)
+void Engine::handleMouseButton(int button, int action, int mods)
 {
+    ui_.onMouseButton(button, action, mods);
+
     if (action != GLFW_PRESS || button != GLFW_MOUSE_BUTTON_LEFT)
+        return;
+    if (ui_.wantsCaptureMouse())
         return;
     if (!render_ctx_.view.input_controller || !render_ctx_.view.camera || !render_ctx_.view.window || !scene_.world)
         return;
@@ -167,10 +191,25 @@ void Engine::handleMouseButton(int button, int action)
             {
                 scene_.world->addComponent<SelectedComponent>(entity, SelectedComponent{});
                 scene_.selected_entity = entity;
+                ui_.openInspector(entity);
                 std::cerr << "[input] selected entity " << entity << std::endl;
                 hit = true;
             }
         });
+}
+
+void Engine::handleKey(int key, int scancode, int action, int mods)
+{
+    ui_.onKey(key, scancode, action, mods);
+    if (ui_.wantsCaptureKeyboard())
+        return;
+    if (render_ctx_.view.input_controller)
+        render_ctx_.view.input_controller->onKey(key, action);
+}
+
+void Engine::handleChar(unsigned int codepoint)
+{
+    ui_.onChar(codepoint);
 }
 
 void Engine::init()
@@ -197,6 +236,11 @@ void Engine::init()
 
     render_ctx_.systems.camera_system = std::make_unique<QuarterViewCameraSystem>();
     render_ctx_.view.input_controller = std::make_unique<InputController>();
+
+    if (!ui_.init(render_ctx_.view.window, "#version 330"))
+    {
+        std::clog << "[ui] warning: failed to init ImGui UI layer\n";
+    }
 }
 
 void Engine::setupCallback()
@@ -206,6 +250,8 @@ void Engine::setupCallback()
     glfwSetCursorPosCallback(render_ctx_.view.window, mouse_callback);
     glfwSetMouseButtonCallback(render_ctx_.view.window, mouse_button_callback);
     glfwSetScrollCallback(render_ctx_.view.window, scroll_callback);
+    glfwSetKeyCallback(render_ctx_.view.window, key_callback);
+    glfwSetCharCallback(render_ctx_.view.window, char_callback);
     glfwSetInputMode(render_ctx_.view.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
@@ -282,4 +328,20 @@ void Engine::render()
     const glm::mat4 view = render_ctx_.view.camera->getViewMatrix();
     const glm::mat4 projection = render_ctx_.view.camera->getProjectionMatrix();
     render_ctx_.view.renderer->draw(render_queue, view, projection);
+    renderUi();
+}
+
+void Engine::renderUi()
+{
+    ui_.beginFrame();
+    if (scene_.world)
+    {
+        int w = 0;
+        int h = 0;
+        glfwGetWindowSize(render_ctx_.view.window, &w, &h);
+        const glm::mat4 view = render_ctx_.view.camera->getViewMatrix();
+        const glm::mat4 projection = render_ctx_.view.camera->getProjectionMatrix();
+        ui_.drawInspectors(*scene_.world, view, projection, w, h);
+    }
+    ui_.endFrame();
 }

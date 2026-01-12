@@ -5,13 +5,12 @@
 #include "input_controller.hpp"
 #include "render_system.hpp"
 #include "renderer.hpp"
+#include "ui_layer.hpp"
 #include "world.hpp"
 
-#include <algorithm>
 #include <glm/glm.hpp>
 #include <memory>
 #include <optional>
-#include <vector>
 
 #ifndef GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_NONE
@@ -62,7 +61,9 @@ public:
     void handleWindowResize(int width, int height);
     void handleMouseMove(double pos_x, double pos_y);
     void handleMouseScroll(double offset_x, double offset_y);
-    void handleMouseButton(int button, int action);
+    void handleMouseButton(int button, int action, int mods);
+    void handleKey(int key, int scancode, int action, int mods);
+    void handleChar(unsigned int codepoint);
 
 private:
     void init();
@@ -72,8 +73,10 @@ private:
     void proccessInput(float delta_time);
     void update(float delta_time);
     void render();
+    void renderUi();
 
     Runtime runtime_;
     Scene scene_;
     RenderContext render_ctx_;
+    UiLayer ui_;
 };
