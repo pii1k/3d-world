@@ -25,14 +25,12 @@ cmake --build build -j
 
 ## Controls
 
-- `W/A/S/D`: Move
-- `Mouse`: Look/rotate camera
 - `Scroll`: Zoom (camera distance)
-- `Left Shift`: Sprint
+- `Left Click`: show entity information
 - `Esc`: Quit
 
 ## Project Layout
 
-- `src/application`: Engine loop / scene setup (Prefabs)
+- `src/application`: Engine loop / scene setup / controller / ui (Prefabs for MVP)
 - `src/graphics`: Renderer / camera / mesh / shaders
-- `src/ecs`: ECS interfaces (components / world / systems)
+- `src/ecs`: ECS interfaces (components / entity / systems)
