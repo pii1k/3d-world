@@ -15,6 +15,17 @@
 - GLM (header-only library)
 - Network: GLFW is downloaded via CMake FetchContent during the initial configure step.
 
+## Getting Started (Ubuntu/WSL)
+
+Install build tools and OpenGL/GLFW system dependencies:
+
+```bash
+sudo apt update && sudo apt install -y \
+  build-essential cmake pkg-config \
+  libgl1-mesa-dev libglu1-mesa-dev \
+  libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+```
+
 ## Build & Run
 
 ```bash
