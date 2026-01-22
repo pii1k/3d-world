@@ -5,6 +5,7 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <optional>
 
 #ifndef GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_NONE
@@ -49,6 +50,43 @@ bool tryProjectToScreen(const glm::vec3 &world_pos,
     out_x = x;
     out_y = y;
     return true;
+}
+
+void drawCommRangeOverlay(const TransformComponent &transform,
+                          const CommNodeComponent &comm_node,
+                          const glm::mat4 &view,
+                          const glm::mat4 &projection,
+                          int viewport_w,
+                          int viewport_h)
+{
+    if (!comm_node.enabled || comm_node.range <= 0.0f)
+        return;
+
+    const glm::vec3 center{transform.position.x, 0.0f, transform.position.z};
+
+    constexpr int kSegments = 64;
+    constexpr float kTwoPi = 6.28318530718f;
+    ImVec2 points[kSegments];
+
+    for (int i = 0; i < kSegments; i++)
+    {
+        const float t = static_cast<float>(i) / static_cast<float>(kSegments);
+        const float a = t * kTwoPi;
+        const glm::vec3 p = center + glm::vec3(std::cos(a) * comm_node.range, 0.0f, std::sin(a) * comm_node.range);
+
+        float sx = 0.0f;
+        float sy = 0.0f;
+        if (!::tryProjectToScreen(p, view, projection, viewport_w, viewport_h, sx, sy))
+            return;
+
+        points[i] = ImVec2(sx, sy);
+    }
+
+    ImDrawList *dl = ImGui::GetBackgroundDrawList();
+    const ImU32 stroke = IM_COL32(0, 220, 255, 190);
+    const ImU32 fill = IM_COL32(0, 220, 255, 35);
+    dl->AddConvexPolyFilled(points, kSegments, fill);
+    dl->AddPolyline(points, kSegments, stroke, ImDrawFlags_Closed, 2.0f);
 }
 
 void drawTransform(const TransformComponent &transform)
@@ -106,13 +144,13 @@ void drawPickBounds(const PickBoundsComponent &bounds)
     ImGui::Text("center_offset: (%.3f, %.3f, %.3f)", bounds.center_offset.x, bounds.center_offset.y, bounds.center_offset.z);
 }
 
-void drawCommNode(const CommNodeComponent &comm_node)
+void drawCommNode(CommNodeComponent &comm_node)
 {
-    ImGui::Text("enabled: %s", comm_node.enabled ? "true" : "false");
+    ImGui::Checkbox("enabled", &comm_node.enabled);
     ImGui::Text("range:   %.3f", comm_node.range);
 }
 
-void drawEntityInspector(const World &world, entity_id entity)
+void drawEntityInspector(World &world, entity_id entity)
 {
     ImGui::Text("Entity: %u", entity);
 
@@ -274,13 +312,12 @@ void UiLayer::openInspector(entity_id entity)
     }
 
     it->second.open = true;
-    it->second.initial_pos_set = false;
     auto pos = std::find(open_inspectors_.begin(), open_inspectors_.end(), entity);
     if (pos == open_inspectors_.end())
         open_inspectors_.push_back(entity);
 }
 
-void UiLayer::drawInspectors(const World &world,
+void UiLayer::drawInspectors(World &world,
                              const glm::mat4 &view,
                              const glm::mat4 &projection,
                              int viewport_w,
@@ -289,29 +326,37 @@ void UiLayer::drawInspectors(const World &world,
     if (!initialized_)
         return;
 
-    open_inspectors_.erase(std::remove_if(open_inspectors_.begin(),
-                                          open_inspectors_.end(),
-                                          [&](entity_id entity)
+    // draw UI
+    open_inspectors_.erase(std::remove_if(open_inspectors_.begin(), open_inspectors_.end(), [&](entity_id entity)
                                           {
-                               auto it = inspector_states_.find(entity);
-                               if (it == inspector_states_.end())
-                                   return true;
+                                            auto it = inspector_states_.find(entity);
+                                            if (it == inspector_states_.end())
+                                                return true;
 
-                                              if (!it->second.open)
-                                              {
-                                                  inspector_states_.erase(it);
-                                                  return true;
-                                              }
+                                            if (!it->second.open)
+                                            {
+                                                inspector_states_.erase(it);
+                                                return true;
+                                            }
 
-                           if (!isEntityLikelyAlive(world, entity))
-                           {
-                               it->second.open = false;
-                               inspector_states_.erase(it);
-                               return true;
-                           }
+                                            if (!::isEntityLikelyAlive(world, entity))
+                                            {
+                                                it->second.open = false;
+                                                inspector_states_.erase(it);
+                                                return true;
+                                            }
 
-                                              return false; }),
+                                            return false; }),
                            open_inspectors_.end());
+
+    // draw comm range overlays
+    for (entity_id entity : open_inspectors_)
+    {
+        auto t = world.getComponent<TransformComponent>(entity);
+        auto c = world.getComponent<CommNodeComponent>(entity);
+        if (t && c)
+            ::drawCommRangeOverlay(t->get(), c->get(), view, projection, viewport_w, viewport_h);
+    }
 
     for (entity_id entity : open_inspectors_)
     {
@@ -320,29 +365,10 @@ void UiLayer::drawInspectors(const World &world,
             continue;
 
         std::string title = "Entity " + std::to_string(entity) + "##inspector_" + std::to_string(entity);
-        const bool should_place_near_entity = it->second.pin_to_entity || !it->second.initial_pos_set;
-        if (should_place_near_entity)
-        {
-            if (auto t = world.getComponent<TransformComponent>(entity))
-            {
-                float x = 0.0f;
-                float y = 0.0f;
-                if (tryProjectToScreen(t->get().position, view, projection, viewport_w, viewport_h, x, y))
-                {
-                    constexpr float kOffsetX = 16.0f;
-                    constexpr float kOffsetY = 16.0f;
-                    const float clamped_x = std::clamp(x + kOffsetX, 0.0f, std::max(0.0f, static_cast<float>(viewport_w) - 1.0f));
-                    const float clamped_y = std::clamp(y + kOffsetY, 0.0f, std::max(0.0f, static_cast<float>(viewport_h) - 1.0f));
-                    const ImGuiCond cond = it->second.pin_to_entity ? ImGuiCond_Always : ImGuiCond_Once;
-                    ImGui::SetNextWindowPos(ImVec2(clamped_x, clamped_y), cond);
-                }
-            }
-        }
+
         if (ImGui::Begin(title.c_str(), &it->second.open, ImGuiWindowFlags_AlwaysAutoResize))
         {
-            ImGui::Checkbox("Pin to entity", &it->second.pin_to_entity);
             drawEntityInspector(world, entity);
-            it->second.initial_pos_set = true;
         }
         ImGui::End();
     }

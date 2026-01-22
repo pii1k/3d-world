@@ -15,8 +15,6 @@ public:
     struct InspectorWindowState
     {
         bool open = true;
-        bool pin_to_entity = false;
-        bool initial_pos_set = false;
     };
 
     UiLayer() = default;
@@ -40,7 +38,7 @@ public:
     bool wantsCaptureKeyboard() const;
 
     void openInspector(entity_id entity);
-    void drawInspectors(const World &world,
+    void drawInspectors(World &world,
                         const glm::mat4 &view,
                         const glm::mat4 &projection,
                         int viewport_w,

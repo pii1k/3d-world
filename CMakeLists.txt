@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 project(3d-world LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 find_package(OpenGL REQUIRED)
 include(FetchContent)
 
@@ -52,9 +55,6 @@ PUBLIC
     glfw
     OpenGL::GL
 )
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(src/ecs)
 add_subdirectory(src/graphics)

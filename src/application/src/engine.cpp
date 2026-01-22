@@ -88,6 +88,8 @@ void Engine::run()
 {
     while (!render_ctx_.view.renderer->windowShouldClose())
     {
+        render_ctx_.view.renderer->pollEvents();
+
         const float current_frame_time = static_cast<float>(glfwGetTime());
         const float delta_time = current_frame_time - runtime_.last_frame_time;
         runtime_.last_frame_time = current_frame_time;
@@ -96,7 +98,6 @@ void Engine::run()
         this->update(delta_time);
         this->render();
         render_ctx_.view.renderer->swapBuffers();
-        render_ctx_.view.renderer->pollEvents();
     }
 }
 
@@ -268,6 +269,7 @@ void Engine::loadAssets()
         scene_.world->addComponent<SelectableComponent>(body, SelectableComponent{});
         const glm::vec3 body_half_extents = scale * 0.5f;
         scene_.world->addComponent<PickBoundsComponent>(body, PickBoundsComponent{body_half_extents, {}});
+        scene_.world->addComponent<CommNodeComponent>(body, CommNodeComponent{});
 
         // roof
         const glm::vec3 roof_scale = glm::vec3(scale.x * 0.6f, scale.y * 0.5f, scale.z * 0.6f);
@@ -290,6 +292,7 @@ void Engine::loadAssets()
         scene_.world->addComponent<SelectableComponent>(cube, SelectableComponent{});
         const glm::vec3 half_extents = scale * 0.5f;
         scene_.world->addComponent<PickBoundsComponent>(cube, PickBoundsComponent{half_extents, {}});
+        scene_.world->addComponent<CommNodeComponent>(cube, CommNodeComponent{});
         return cube;
     };
 
