@@ -18,4 +18,5 @@
         "__config": "cpp"
     },
     "cmake.ignoreCMakeListsMissing": true,
+    "editor.inlineSuggest.enabled": false
 }

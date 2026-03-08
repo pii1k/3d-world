@@ -21,7 +21,8 @@ public:
     explicit Camera(const CameraConfig &cfg);
 
     glm::mat4 view() const;
-    glm::mat4 proj(int w, int h) const;
+    glm::mat4 proj() const;
+    void setAspectRatio(float ratio);
 
     void setPosition(const glm::vec3 &pos);
     void setTarget(const glm::vec3 &target);
@@ -37,4 +38,5 @@ private:
     float near_plane_, far_plane_ = 0.f;
     bool use_ortho_ = false;
     float ortho_size_ = 0.f;
+    float aspect_ratio_ = 1.33f;
 };

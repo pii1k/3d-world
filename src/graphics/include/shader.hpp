@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <string>
 
+namespace graphics
+{
 class Shader
 {
 public:
@@ -31,3 +33,4 @@ private:
 private:
     unsigned int id_;
 };
+} // namespace graphics

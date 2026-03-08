@@ -1,4 +1,4 @@
-#include "input/input_controller.hpp"
+#include "input_controller.hpp"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -8,12 +8,12 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <limits>
 
-InputController::InputController(OrbitCamera &camera_controller,
-                                 glm::vec3 &cube_pos,
+namespace controller
+{
+InputController::InputController(glm::vec3 &cube_pos,
                                  bool &show_ui,
                                  float &move_speed)
-    : camera_controller_(camera_controller),
-      cube_pos_(cube_pos),
+    : cube_pos_(cube_pos),
       show_ui_(show_ui),
       move_speed_(move_speed) {}
 
@@ -41,11 +41,6 @@ void InputController::onKey(int key, int action)
     default:
         break;
     }
-}
-
-void InputController::onScroll(double yoffset)
-{
-    camera_controller_.onScroll(yoffset);
 }
 
 void InputController::update(float dt_s)
@@ -131,3 +126,4 @@ void InputController::onMouseClick(double cursor_x,
     if (rayIntersectsAABB(ray_origin, ray_dir, aabb_min, aabb_max))
         show_ui_ = !show_ui_;
 }
+} // namespace controller

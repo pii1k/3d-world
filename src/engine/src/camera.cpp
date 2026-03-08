@@ -1,4 +1,4 @@
-#include "engine/camera.hpp"
+#include "camera.hpp"
 
 #include <algorithm>
 
@@ -17,12 +17,16 @@ glm::mat4 Camera::view() const
     return glm::lookAt(position_, target_, up_);
 }
 
-glm::mat4 Camera::proj(int w, int h) const
+glm::mat4 Camera::proj() const
 {
-    const float aspect_ratio = static_cast<float>(w) / static_cast<float>(std::max(1, h));
-    return use_ortho_ ? glm::ortho(-ortho_size_ * aspect_ratio, ortho_size_ * aspect_ratio,
+    return use_ortho_ ? glm::ortho(-ortho_size_ * aspect_ratio_, ortho_size_ * aspect_ratio_,
                                    -ortho_size_, ortho_size_, near_plane_, far_plane_)
-                      : glm::perspective(glm::radians(fov_deg_), aspect_ratio, near_plane_, far_plane_);
+                      : glm::perspective(glm::radians(fov_deg_), aspect_ratio_, near_plane_, far_plane_);
+}
+
+void Camera::setAspectRatio(float ratio)
+{
+    aspect_ratio_ = ratio;
 }
 
 void Camera::setPosition(const glm::vec3 &pos)

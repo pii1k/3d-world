@@ -50,35 +50,4 @@ FetchContent_Declare(
 set(glm_SOURCE_SUBDIR cmake)
 FetchContent_MakeAvailable(glm)
 
-# Simulator exe
-file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-)
-
-add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
-
-target_include_directories(${PROJECT_NAME}
-  PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/src/third_party
-)
-
-target_link_libraries(${PROJECT_NAME}
-  PRIVATE
-    glad
-    glfw
-    glm
-)
-
-target_compile_options(${PROJECT_NAME}
-  PRIVATE
-    -Wall
-    -Wextra
-    -Wpedantic
-    -O2
-)
-
-target_compile_definitions(${PROJECT_NAME}
-  PRIVATE
-    ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets"
-)
+add_subdirectory(src)

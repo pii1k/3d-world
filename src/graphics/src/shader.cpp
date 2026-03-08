@@ -1,4 +1,4 @@
-#include "renderer/shader.hpp"
+#include "shader.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -10,6 +10,8 @@ namespace
 constexpr int DEFAULT_LOG_BUF_SIZE = 1024;
 }
 
+namespace graphics
+{
 Shader::Shader(const std::string &vertex_path, const std::string &fragment_path)
 {
     std::string vertex_code;
@@ -159,3 +161,4 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type)
         }
     }
 }
+} // namespace graphics

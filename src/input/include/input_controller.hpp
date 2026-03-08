@@ -1,14 +1,13 @@
 #pragma once
 
-#include "input/camera_controller.hpp"
-
 #include <glm/glm.hpp>
 
+namespace controller
+{
 class InputController
 {
 public:
-    InputController(OrbitCamera &camera_controller,
-                    glm::vec3 &cube_pos,
+    InputController(glm::vec3 &cube_pos,
                     bool &show_ui,
                     float &move_speed);
 
@@ -29,7 +28,6 @@ private:
                                   const glm::vec3 &aabb_min,
                                   const glm::vec3 &aabb_max);
 
-    OrbitCamera &camera_controller_;
     glm::vec3 &cube_pos_;
     bool &show_ui_;
     float &move_speed_;
@@ -42,3 +40,4 @@ private:
         bool d = false;
     } input_;
 };
+} // namespace controller
