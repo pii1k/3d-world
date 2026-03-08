@@ -1,49 +1,33 @@
 #pragma once
 
-#include "gl_includes.hpp"
-#include "mesh.hpp"
-#include "render_data.hpp"
+#include "render_defs.hpp"
+#include "shader.hpp"
 
-#ifndef GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_NONE
-#endif
-#include <GLFW/glfw3.h>
-#include <glm/mat4x4.hpp>
+#include "glad/gl.h"
+#include <glm/glm.hpp>
 #include <memory>
-#include <string>
-#include <vector>
 
+namespace graphics
+{
 class Renderer
 {
 public:
+    Renderer();
     ~Renderer();
 
-    bool init(int width, int height, const std::string &title);
-    void draw(const RenderQueue &queue, const glm::mat4 &view, const glm::mat4 &projection);
-    bool windowShouldClose() const { return should_close_; };
+    bool init();
 
-    void swapBuffers();
-    void pollEvents();
-
-    GLFWwindow *getWindowPtr() { return window_ptr_; };
+    void draw(const domain::SceneData &scene);
 
 private:
-    GLuint loadShaders(const std::string &vertex_shader_path, const std::string &fragment_shader_path);
-    void registerBuiltinMeshes();
-    int registerMesh(std::unique_ptr<Mesh> mesh, int preferred_id = -1);
-    Mesh *getMeshFromId(int mesh_id);
+    std::unique_ptr<graphics::Shader> shader_;
 
-    GLFWwindow *window_ptr_ = nullptr;
-    bool should_close_ = false;
-    int width_ = 0;
-    int height_ = 0;
-
-    GLuint shader_program_ = 0;
-    GLint model_loc_ = -1;
-    GLint view_loc_ = -1;
-    GLint projection_loc_ = -1;
-    GLint color_loc_ = -1;
-    GLint use_grid_loc_ = -1;
-
-    std::vector<std::unique_ptr<Mesh>> meshes_;
+    GLint u_mvp_loc_ = -1;
+    GLint u_color_loc_ = -1;
+    GLuint cube_vao_ = 0;
+    GLuint cube_vbo_ = 0;
+    GLuint ui_vao_ = 0;
+    GLuint ui_vbo_ = 0;
 };
+
+} // namespace graphics

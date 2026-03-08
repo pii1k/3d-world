@@ -1,36 +1,36 @@
 #pragma once
 
-#include "gl_includes.hpp"
-#include <fstream>
-#include <sstream>
-#include <stdexcept>
+#include <glad/gl.h>
+#include <glm/glm.hpp>
 #include <string>
 
-inline std::string readShaderFile(const std::string &path)
+namespace graphics
 {
-    std::ifstream file_stream(path);
-    if (!file_stream.is_open())
-    {
-        throw std::runtime_error("Failed to open shader: " + path);
-    }
-    std::stringstream buffer;
-    buffer << file_stream.rdbuf();
-    return buffer.str();
-}
+class Shader
+{
+public:
+    Shader(const std::string &vertex_path, const std::string &fragment_path);
 
-inline GLuint compileShader(GLenum type, const std::string &source)
-{
-    GLuint shader = glCreateShader(type);
-    const char *src = source.c_str();
-    glShaderSource(shader, 1, &src, nullptr);
-    glCompileShader(shader);
-    GLint compiled = 0;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-    if (compiled != GL_TRUE)
-    {
-        char log[1024];
-        glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
-        throw std::runtime_error(std::string("Shader compile failed: ") + log);
-    }
-    return shader;
-}
+    void use();
+    void setBool(const std::string &name, bool value) const;
+    void setInt(const std::string &name, int value) const;
+    void setFloat(const std::string &name, float value) const;
+    void setVec2(const std::string &name, const glm::vec2 &value) const;
+    void setVec2(const std::string &name, float x, float y) const;
+    void setVec3(const std::string &name, const glm::vec3 &value) const;
+    void setVec3(const std::string &name, float x, float y, float z) const;
+    void setVec4(const std::string &name, const glm::vec4 &value) const;
+    void setVec4(const std::string &name, float x, float y, float z, float w) const;
+    void setMat2(const std::string &name, const glm::mat2 &mat) const;
+    void setMat3(const std::string &name, const glm::mat3 &mat) const;
+    void setMat4(const std::string &name, const glm::mat4 &mat) const;
+
+    unsigned int getId() { return id_; };
+
+private:
+    void checkCompileErrors(unsigned int shader, std::string type);
+
+private:
+    unsigned int id_;
+};
+} // namespace graphics

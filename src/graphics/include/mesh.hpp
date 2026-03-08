@@ -1,10 +1,11 @@
 #pragma once
 
-#include "gl_includes.hpp"
-#include <cstddef>
+#include <OpenGL/OpenGL.h>
 #include <glm/glm.hpp>
 #include <vector>
 
+namespace graphics
+{
 struct Vertex
 {
     glm::vec3 position;
@@ -15,7 +16,8 @@ struct Vertex
 class Mesh
 {
 public:
-    Mesh(const std::vector<Vertex> &vertices, const std::vector<unsigned int> &indices);
+    Mesh(const std::vector<Vertex> &vertices,
+         const std::vector<uint32_t> &indices);
     ~Mesh();
 
     GLuint getVAO() const { return vao_; }
@@ -23,6 +25,8 @@ public:
 
 private:
     std::vector<Vertex> vertices_;
-    std::vector<unsigned int> indices_;
+    std::vector<uint32_t> indices_;
     GLuint vao_, vbo_, ebo_ = 0;
 };
+
+} // namespace graphics
