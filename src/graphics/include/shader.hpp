@@ -9,7 +9,7 @@ namespace graphics
 class Shader
 {
 public:
-    Shader(const std::string &vertex_path, const std::string &fragment_path);
+    Shader(const std::string &vertex_source, const std::string &fragment_source);
 
     void use();
     void setBool(const std::string &name, bool value) const;

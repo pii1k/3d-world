@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render_defs.hpp"
+#include "resource_manager.hpp"
 #include "shader.hpp"
 
 #include "glad/gl.h"
@@ -12,7 +13,7 @@ namespace graphics
 class Renderer
 {
 public:
-    Renderer();
+    explicit Renderer(util::ResourceManager &resource_manager);
     ~Renderer();
 
     bool init();
@@ -21,6 +22,7 @@ public:
 
 private:
     std::unique_ptr<graphics::Shader> shader_;
+    util::ResourceManager &resource_manager_;
 
     GLint u_mvp_loc_ = -1;
     GLint u_color_loc_ = -1;

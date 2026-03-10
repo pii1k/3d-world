@@ -1,12 +1,13 @@
 #include "engine.hpp"
 #include "event.hpp"
-#include "renderer.hpp"
 
 #include <algorithm>
 #include <iostream>
 
 namespace
 {
+using namespace std::string_literals;
+
 constexpr int kWindowW = 960;
 constexpr int kWindowH = 720;
 
@@ -19,8 +20,7 @@ engine::Engine *get_engine(GLFWwindow *window)
 namespace engine
 {
 Engine::Engine(domain::Game &game)
-    : game_(game),
-      renderer_(std::make_unique<graphics::Renderer>()) {}
+    : game_(game) {}
 
 Engine::~Engine()
 {
@@ -34,6 +34,7 @@ Engine::~Engine()
 
 bool Engine::init()
 {
+    // init OpenGL
     if (!glfwInit())
     {
         std::cerr << "Failed to initialize GLFW\n";
@@ -66,7 +67,13 @@ bool Engine::init()
         return false;
     }
 
-    if (!renderer_ || !renderer_->init())
+    // init resource manager
+    resource_manager_ = std::make_unique<util::ResourceManager>();
+    resource_manager_->setRootPath(RESOURCE_ROOT_PATH);
+
+    // init renderer
+    renderer_ = std::make_unique<graphics::Renderer>(*resource_manager_);
+    if (!renderer_->init())
     {
         std::cerr << "Failed to initialize Renderer\n";
         return false;
