@@ -1,4 +1,6 @@
 #include "renderer.hpp"
+#include "resource_manager.hpp"
+
 #include <glm/gtc/type_ptr.hpp>
 
 namespace graphics
@@ -32,12 +34,10 @@ const float kUIPanelVertices[] = {
     -0.95f, 0.95f, 0.0f, -0.55f, 0.65f, 0.0f, -0.95f, 0.65f, 0.0f};
 
 const glm::vec3 kUIPanelColor{0.10f, 0.12f, 0.16f};
-
-const std::string kShaderDirPath = "assets/shader/";
-
 } // namespace
 
-Renderer::Renderer() = default;
+Renderer::Renderer(util::ResourceManager &resource_manager)
+    : resource_manager_(resource_manager) {}
 
 Renderer::~Renderer()
 {
@@ -53,7 +53,12 @@ Renderer::~Renderer()
 
 bool Renderer::init()
 {
-    shader_ = std::make_unique<graphics::Shader>(kShaderDirPath + "snake.vs", kShaderDirPath + "snake.fs");
+    auto vertex_src = resource_manager_.readTextFile("shader/snake.vs");
+    auto fragment_src = resource_manager_.readTextFile("shader/snake.fs");
+    if (vertex_src.empty() || fragment_src.empty())
+        return false;
+
+    shader_ = std::make_unique<graphics::Shader>(vertex_src, fragment_src);
 
     u_mvp_loc_ = glGetUniformLocation(shader_->getId(), "uMVP");
     u_color_loc_ = glGetUniformLocation(shader_->getId(), "uColor");

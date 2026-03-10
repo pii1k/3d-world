@@ -4,6 +4,7 @@ add_subdirectory(graphics)
 add_subdirectory(engine)
 add_subdirectory(input)
 add_subdirectory(domain)
+add_subdirectory(util)
 
 add_executable(main_app app/main.cpp)
 

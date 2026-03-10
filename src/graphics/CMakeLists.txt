@@ -1,3 +1,5 @@
+project(graphics)
+
 set(GRAPHICS_SOURCES
     src/mesh.cpp
     src/renderer.cpp
@@ -14,4 +16,5 @@ target_link_libraries(graphics PUBLIC
     glad
     glm
     domain
+    util
 )

@@ -12,4 +12,9 @@ target_include_directories(engine PUBLIC
 target_link_libraries(engine PUBLIC
     graphics
     glfw
+    util
+)
+
+target_compile_definitions(engine PRIVATE
+    RESOURCE_ROOT_PATH="${CMAKE_SOURCE_DIR}/src/graphics/assets"
 )

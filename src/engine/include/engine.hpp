@@ -2,6 +2,7 @@
 
 #include "game.hpp"
 #include "renderer.hpp"
+#include "resource_manager.hpp"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -38,6 +39,7 @@ private:
     double last_time_s_ = 0.0;
 
     std::unique_ptr<graphics::Renderer> renderer_;
+    std::unique_ptr<util::ResourceManager> resource_manager_;
     domain::Game &game_;
 };
 } // namespace engine
