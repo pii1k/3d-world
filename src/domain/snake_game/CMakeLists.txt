@@ -1,15 +1,26 @@
+project(game_impl)
+
 set(SNAKE_GAME_SOURCES
     src/snake_game.cpp
+    src/snake_input.cpp
+    src/snake_logic.cpp
+    src/snake_scene_builder.cpp
 )
 
-add_library(game_impl STATIC ${SNAKE_GAME_SOURCES})
+add_library(${PROJECT_NAME} STATIC ${SNAKE_GAME_SOURCES})
 
-target_include_directories(game_impl PUBLIC
+target_include_directories(${PROJECT_NAME}
+PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
-target_link_libraries(game_impl PUBLIC
+target_link_libraries(${PROJECT_NAME}
+PUBLIC
     domain
-    graphics
     input
+)
+
+target_link_libraries(${PROJECT_NAME}
+PRIVATE
+    graphics
 )

@@ -18,4 +18,9 @@ inline const glm::vec3 kGrassGreenAlt{
 
 inline const glm::vec3 kWaterBlue{0.10f, 0.34f, 0.82f};
 inline const glm::vec3 kSoilOchre{0.74f, 0.56f, 0.26f};
+inline const glm::vec3 kGreen{0.30f, 0.70f, 0.30f};
+inline const glm::vec3 kAppleRed{0.92f, 0.25f, 0.20f};
+inline const glm::vec3 kDirtBrown{0.60f, 0.40f, 0.20f};
+inline const glm::vec3 kStoneGray{0.50f, 0.50f, 0.50f};
+inline const glm::vec3 kSkyBlue{0.53f, 0.81f, 0.92f};
 } // namespace graphics::colors

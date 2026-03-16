@@ -1,5 +1,8 @@
-add_library(util STATIC "src/resource_manager.cpp")
+project(util)
 
-target_include_directories(util PUBLIC
+add_library(${PROJECT_NAME} STATIC "src/resource_manager.cpp")
+
+target_include_directories(${PROJECT_NAME}
+PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )

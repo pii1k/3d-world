@@ -7,18 +7,7 @@ add_subdirectory(domain)
 add_subdirectory(util)
 
 add_executable(main_app app/main.cpp)
-
-target_include_directories(main_app PRIVATE
-  "graphics/include"
-  "engine/include"
-  "input/include"
-  "domain/include"
-)
-
 target_link_libraries(main_app
 PRIVATE
   game_impl
-  engine
-  input
-  graphics
 )

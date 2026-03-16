@@ -1,8 +1,8 @@
 #include "snake_game.hpp"
-#include "colors.hpp"
 #include "event.hpp"
 
-#include <glm/gtc/matrix_transform.hpp>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 #include <iostream>
 #include <memory>
 #include <type_traits>
@@ -26,18 +26,13 @@ void SnakeGame::init()
     cam_cfg.far_plane = 200.0f;
     camera_controller_ = std::make_unique<controller::CameraController>(cam_cfg);
     camera_controller_->update();
-
-    input_controller_ = std::make_unique<controller::InputController>(state_.cube_pos,
-                                                                      state_.show_ui,
-                                                                      state_.move_speed);
 }
 
 void SnakeGame::update(float dt_s)
 {
-    if (input_controller_)
-        input_controller_->update(dt_s);
     if (camera_controller_)
         camera_controller_->update();
+    logic_.update(dt_s);
 }
 
 void SnakeGame::onEvent(const Event &e)
@@ -53,16 +48,12 @@ void SnakeGame::onEvent(const Event &e)
                    }
                    else if constexpr (std::is_same_v<T, MouseButtonEvent>)
                    {
-                       if (input_controller_)
-                           input_controller_->onMouseClick(arg.x, arg.y,
-                                                           state_.window_width, state_.window_height,
-                                                           camera_controller_->getCamera().view(),
-                                                           camera_controller_->getCamera().proj());
+                       // do nothing
                    }
                    else if constexpr (std::is_same_v<T, KeyEvent>)
                    {
-                       if (input_controller_)
-                           input_controller_->onKey(arg.key, arg.action);
+                       if (arg.action == GLFW_PRESS)
+                           input_.onKeyPressed(arg.key, logic_, state_.show_ui);
                    }
                    else if constexpr (std::is_same_v<T, ResizeEvent>)
                    {
@@ -85,32 +76,10 @@ void SnakeGame::getScene(SceneData &out_scene)
 
     out_scene.view = camera_controller_->getCamera().view();
     out_scene.proj = camera_controller_->getCamera().proj();
-    out_scene.show_ui = state_.show_ui;
+    out_scene.show_ui = state_.show_ui || logic_.state().paused || logic_.state().game_over;
     out_scene.objects.clear();
 
-    // Ground
-    {
-        constexpr int kGridW = 24;
-        constexpr int kGridH = 18;
-        constexpr float kGroundThickness = 1.0f;
-        const float ground_width = static_cast<float>(kGridW);
-        const float ground_length = static_cast<float>(kGridH) * 2.0f;
-
-        const glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -kGroundThickness * 0.5f, 0.0f)) *
-                                glm::scale(glm::mat4(1.0f), glm::vec3(ground_width, kGroundThickness, ground_length));
-
-        out_scene.objects.push_back({domain::MeshType::Cube, // Using cube for ground for now
-                                     model,
-                                     graphics::colors::kGrassGreenAlt});
-    }
-
-    // Snake cube
-    {
-        const glm::mat4 model = glm::translate(glm::mat4(1.0f), state_.cube_pos);
-        out_scene.objects.push_back({domain::MeshType::Cube,
-                                     model,
-                                     graphics::colors::kWaterBlue});
-    }
+    scene_builder_.buildScene(logic_, out_scene);
 }
 
 } // namespace domain

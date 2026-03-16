@@ -6,13 +6,15 @@ set(GRAPHICS_SOURCES
     src/shader.cpp
 )
 
-add_library(graphics STATIC ${GRAPHICS_SOURCES})
+add_library(${PROJECT_NAME} STATIC ${GRAPHICS_SOURCES})
 
-target_include_directories(graphics PUBLIC
+target_include_directories(${PROJECT_NAME}
+PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
-target_link_libraries(graphics PUBLIC
+target_link_libraries(${PROJECT_NAME}
+PUBLIC
     glad
     glm
     domain

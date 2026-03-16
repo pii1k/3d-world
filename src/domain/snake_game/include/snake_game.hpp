@@ -2,8 +2,10 @@
 
 #include "camera_controller.hpp"
 #include "game.hpp"
-#include "input_controller.hpp"
 #include "render_defs.hpp"
+#include "snake_input.hpp"
+#include "snake_logic.hpp"
+#include "snake_scene_builder.hpp"
 
 #include <memory>
 
@@ -11,10 +13,7 @@ namespace domain
 {
 struct GameState
 {
-    bool show_ui = true;
-    glm::vec3 cube_pos{0.0f, 0.5f, 0.0f};
-    float move_speed = 6.0f; // units/sec
-
+    bool show_ui = false;
     int window_width = 0;
     int window_height = 0;
 };
@@ -31,6 +30,8 @@ public:
 private:
     GameState state_;
     std::unique_ptr<controller::CameraController> camera_controller_;
-    std::unique_ptr<controller::InputController> input_controller_;
+    SnakeLogic logic_;
+    SnakeInput input_;
+    SnakeSceneBuilder scene_builder_;
 };
 } // namespace domain
