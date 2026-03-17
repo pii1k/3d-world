@@ -6,18 +6,19 @@ The project is organized so each game lives under `src/domain/<game_name>` and i
 ## Build
 
 ```bash
-mkdir -p build
-cd build
-cmake -DGAME_NAME=snake_game ..
-cmake --build .
+./build.sh
 ```
 
-Replace `snake_game` with another game directory (for example `bat_game`).
+To build a specific game:
+
+```bash
+./build.sh --game=bat_game
+```
 
 ## Run
 
 ```bash
-./main_app
+./build/src/main_app
 ```
 
 ## Project Layout
