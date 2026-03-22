@@ -26,6 +26,14 @@ struct MouseButtonEvent
     double y = 0;
 };
 
+struct CursorMoveEvent
+{
+    double x = 0;
+    double y = 0;
+    double delta_x = 0;
+    double delta_y = 0;
+};
+
 struct KeyEvent
 {
     int key = 0;
@@ -42,6 +50,7 @@ struct ResizeEvent
 
 using Event = std::variant<ScrollEvent,
                            MouseButtonEvent,
+                           CursorMoveEvent,
                            KeyEvent,
                            ResizeEvent>;
 

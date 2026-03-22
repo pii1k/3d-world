@@ -14,8 +14,8 @@ public:
     void update(float dt_s, const BatState &bat);
     void onResize(int width, int height);
 
-    Camera &camera() { return *camera_; }
-    const Camera &camera() const { return *camera_; }
+    Camera &getCamera() { return *camera_; }
+    const Camera &getCamera() const { return *camera_; }
 
 private:
     std::unique_ptr<Camera> camera_;

@@ -1,6 +1,7 @@
 #include "bat_camera_rig.hpp"
 
 #include <algorithm>
+#include <glm/trigonometric.hpp>
 
 namespace domain
 {
@@ -27,12 +28,19 @@ void BatCameraRig::update(float dt_s, const BatState &bat)
     if (!camera_)
         return;
 
-    const glm::vec3 desired = bat.position - bat.forward * distance_ + glm::vec3(0.0f, height_, 0.0f);
+    const float yaw = glm::radians(bat.camera_yaw_deg);
+    const float pitch = glm::radians(bat.camera_pitch_deg);
+    const float cos_pitch = glm::cos(pitch);
+    const glm::vec3 look_dir{cos_pitch * glm::sin(yaw),
+                             glm::sin(pitch),
+                             cos_pitch * glm::cos(yaw)};
+    const glm::vec3 target = bat.position + glm::vec3(0.0f, height_, 0.0f);
+    const glm::vec3 desired = target - look_dir * distance_;
     const float t = 1.0f - std::exp(-smooth_rate_ * std::max(0.0f, dt_s));
     smooth_pos_ = glm::mix(smooth_pos_, desired, t);
 
     camera_->setPosition(smooth_pos_);
-    camera_->setTarget(bat.position);
+    camera_->setTarget(target);
     camera_->setUp(glm::vec3(0.0f, 1.0f, 0.0f));
     camera_->setPerspective(base_fov_deg_, 0.1f, 300.0f);
 }

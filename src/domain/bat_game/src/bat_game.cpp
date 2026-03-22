@@ -39,6 +39,10 @@ void BatGame::onEvent(const Event &e)
                    {
                        // do nothing for now
                    }
+                   else if constexpr (std::is_same_v<T, CursorMoveEvent>)
+                   {
+                       input_.onCursorMove(arg.delta_x, arg.delta_y);
+                   }
                    else if constexpr (std::is_same_v<T, KeyEvent>)
                    {
                        input_.onKeyEvent(arg.key, arg.action);
@@ -56,10 +60,10 @@ void BatGame::onEvent(const Event &e)
                e);
 }
 
-void BatGame::getScene(SceneData &out_scene)
+void BatGame::setScene(SceneData &out_scene)
 {
-    out_scene.view = camera_rig_.camera().view();
-    out_scene.proj = camera_rig_.camera().proj();
+    out_scene.view = camera_rig_.getCamera().view();
+    out_scene.proj = camera_rig_.getCamera().proj();
     out_scene.show_ui = state_.show_ui;
     out_scene.objects.clear();
 

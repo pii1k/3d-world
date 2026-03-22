@@ -1,13 +1,11 @@
 #pragma once
 
-#include "camera_controller.hpp"
 #include "game.hpp"
 #include "render_defs.hpp"
+#include "snake_camera_rig.hpp"
 #include "snake_input.hpp"
 #include "snake_logic.hpp"
 #include "snake_scene_builder.hpp"
-
-#include <memory>
 
 namespace domain
 {
@@ -25,11 +23,11 @@ public:
     void init() override;
     void update(float dt_s) override;
     void onEvent(const Event &e) override;
-    void getScene(SceneData &out_scene) override;
+    void setScene(SceneData &out_scene) override;
 
 private:
     GameState state_;
-    std::unique_ptr<controller::CameraController> camera_controller_;
+    SnakeCameraRig camera_rig_{};
     SnakeLogic logic_;
     SnakeInput input_;
     SnakeSceneBuilder scene_builder_;

@@ -2,6 +2,7 @@ project(game_impl)
 
 set(SNAKE_GAME_SOURCES
     src/snake_game.cpp
+    src/snake_camera_rig.cpp
     src/snake_input.cpp
     src/snake_logic.cpp
     src/snake_scene_builder.cpp
@@ -17,7 +18,6 @@ PUBLIC
 target_link_libraries(${PROJECT_NAME}
 PUBLIC
     domain
-    input
 )
 
 target_link_libraries(${PROJECT_NAME}

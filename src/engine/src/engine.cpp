@@ -60,6 +60,7 @@ bool Engine::init()
     glfwSetWindowUserPointer(window_ptr_, this);
     this->setGLFWCallbacks();
     glfwGetFramebufferSize(window_ptr_, &framebuffer_w_, &framebuffer_h_);
+    glfwSetInputMode(window_ptr_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     if (!gladLoadGL(glfwGetProcAddress))
     {
@@ -117,7 +118,7 @@ void Engine::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     domain::SceneData scene;
-    game_.getScene(scene);
+    game_.setScene(scene);
 
     renderer_->draw(scene);
 }
@@ -146,11 +147,18 @@ void Engine::keyboard_callback(GLFWwindow *window, int key, int /*scan_code*/, i
         eng->onKey(key, action);
 }
 
+void Engine::cursor_position_callback(GLFWwindow *window, double position_x, double position_y)
+{
+    if (auto *eng = get_engine(window))
+        eng->onCursorPosition(position_x, position_y);
+}
+
 void Engine::setGLFWCallbacks()
 {
     glfwSetFramebufferSizeCallback(window_ptr_, Engine::framebuffer_size_callback);
     glfwSetKeyCallback(window_ptr_, Engine::keyboard_callback);
     glfwSetMouseButtonCallback(window_ptr_, Engine::mouse_button_callback);
+    glfwSetCursorPosCallback(window_ptr_, Engine::cursor_position_callback);
     glfwSetScrollCallback(window_ptr_, Engine::scroll_callback);
 }
 
@@ -178,6 +186,29 @@ void Engine::onMouseButton(int button, int action)
     glfwGetCursorPos(window_ptr_, &cursor_x, &cursor_y);
 
     game_.onEvent(domain::MouseButtonEvent{button, action, 0, cursor_x, cursor_y});
+}
+
+void Engine::onCursorPosition(double position_x, double position_y)
+{
+    if (!window_ptr_)
+        return;
+
+    double delta_x = 0.0;
+    double delta_y = 0.0;
+    if (mouse_.has_valid_last_pos)
+    {
+        delta_x = position_x - mouse_.last_x;
+        delta_y = position_y - mouse_.last_y;
+    }
+    else
+    {
+        mouse_.has_valid_last_pos = true;
+    }
+
+    mouse_.last_x = position_x;
+    mouse_.last_y = position_y;
+
+    game_.onEvent(domain::CursorMoveEvent{position_x, position_y, delta_x, delta_y});
 }
 
 void Engine::onKey(int key, int action)

@@ -17,6 +17,8 @@ struct BatState
     glm::vec3 position{0.0f, 2.0f, 0.0f};
     glm::vec3 velocity{0.0f};
     glm::vec3 forward{0.0f, 0.0f, -1.0f};
+    float camera_yaw_deg = 180.0f;
+    float camera_pitch_deg = -18.0f;
 };
 
 struct InputState
@@ -25,5 +27,7 @@ struct InputState
     bool a = false;
     bool s = false;
     bool d = false;
+    float look_yaw_deg = 180.0f;
+    float look_pitch_deg = -18.0f;
 };
 } // namespace domain

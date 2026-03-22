@@ -24,7 +24,7 @@ public:
     void init() override;
     void update(float dt_s) override;
     void onEvent(const Event &e) override;
-    void getScene(SceneData &out_scene) override;
+    void setScene(SceneData &out_scene) override;
 
 private:
     BatGameState state_{};

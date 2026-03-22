@@ -2,7 +2,6 @@ set(GAME_NAME "snake_game" CACHE STRING "Game to build")
 
 add_subdirectory(graphics)
 add_subdirectory(engine)
-add_subdirectory(input)
 add_subdirectory(domain)
 add_subdirectory(util)
 
