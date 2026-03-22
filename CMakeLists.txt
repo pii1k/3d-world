@@ -4,6 +4,20 @@ project(snake_game LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(TARGET_OS "" CACHE STRING "Target platform: mac, windows, or linux")
+if(TARGET_OS STREQUAL "")
+  if(APPLE)
+    set(TARGET_OS "mac" CACHE STRING "Target platform: mac, windows, or linux" FORCE)
+  elseif(WIN32)
+    set(TARGET_OS "windows" CACHE STRING "Target platform: mac, windows, or linux" FORCE)
+  elseif(UNIX)
+    set(TARGET_OS "linux" CACHE STRING "Target platform: mac, windows, or linux" FORCE)
+  else()
+    message(FATAL_ERROR "Unable to infer target OS. Pass -DTARGET_OS=<mac|windows|linux>.")
+  endif()
+endif()
+set_property(CACHE TARGET_OS PROPERTY STRINGS mac windows linux)
+
 include(FetchContent)
 
 # GLFW
@@ -15,8 +29,13 @@ FetchContent_Declare(
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
+if(TARGET_OS STREQUAL "linux")
+  set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+  set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
+else()
+  set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+  set(GLFW_BUILD_X11 OFF CACHE BOOL "" FORCE)
+endif()
 FetchContent_MakeAvailable(glfw)
 
 # GLAD
