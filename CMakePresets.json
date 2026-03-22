@@ -1,0 +1,70 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base-debug",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "GAME_NAME": "bat_game"
+      }
+    },
+    {
+      "name": "host-debug",
+      "inherits": "base-debug",
+      "displayName": "Host Debug",
+      "description": "Debug build for the host OS with the default game."
+    },
+    {
+      "name": "linux-debug",
+      "inherits": "base-debug",
+      "displayName": "Linux Debug",
+      "description": "Debug build targeting linux with the default game.",
+      "cacheVariables": {
+        "TARGET_OS": "linux"
+      }
+    },
+    {
+      "name": "mac-debug",
+      "inherits": "base-debug",
+      "displayName": "Mac Debug",
+      "description": "Debug build targeting mac with the default game.",
+      "cacheVariables": {
+        "TARGET_OS": "mac"
+      }
+    },
+    {
+      "name": "windows-debug",
+      "inherits": "base-debug",
+      "displayName": "Windows Debug",
+      "description": "Debug build targeting windows with the default game.",
+      "cacheVariables": {
+        "TARGET_OS": "windows"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "host-debug",
+      "configurePreset": "host-debug"
+    },
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug"
+    },
+    {
+      "name": "mac-debug",
+      "configurePreset": "mac-debug"
+    },
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-debug"
+    }
+  ]
+}
