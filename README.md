@@ -77,7 +77,7 @@ Examples:
 - `src/engine` — windowing, loop, and core engine glue
 - `src/graphics` — basic renderer/shader setup
 - `src/domain` — game implementations (e.g., `snake_game`, `bat_game`)
-- `src/input` — input helpers/controllers
+~~- `src/input` — input helpers/controllers~~
 - `src/util` — utilities
 
 ---
