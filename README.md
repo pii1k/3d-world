@@ -96,3 +96,7 @@ Examples:
 - Add basic physics helpers (gravity, collisions).
 - Standardize game module interfaces and data flow.
 - Add tests or lightweight validation tools where feasible.
+
+---
+
+![alt text](main_architecture.png)
